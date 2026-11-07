@@ -4,6 +4,7 @@ import type { EngineDiagnostics, SampleEvent } from '@meimu/mutracer';
 import { VIEWER_AOVS, setSettings, setUi, useViewer } from '../store';
 import { getEngine, type ViewerEngine } from '../engine/ViewerEngine';
 import { Field, Hint, Scrub, Select, Switch } from './ui/controls';
+import { useT } from '../i18n';
 
 const AOV_LABELS: Record<(typeof VIEWER_AOVS)[number], string> = {
   depth: 'Depth', position: 'Position', roughness: 'Roughness', diffuseAlbedo: 'Diffuse reflectance',
@@ -13,12 +14,13 @@ const AOV_LABELS: Record<(typeof VIEWER_AOVS)[number], string> = {
 /** Viewport debug card. Collapsed, it shows only the sample time graph. */
 export function DebugOverlay() {
   const open = useViewer((s) => s.ui.debug);
+  const t = useT();
   return (
     <div className="float debug-overlay" data-open={open || undefined}>
-      <button className="debug-overlay__head" aria-expanded={open} aria-label={open ? 'Hide debug' : 'Show debug'}
-        title="Render debug" onClick={() => setUi({ debug: !open })}>
+      <button className="debug-overlay__head" aria-expanded={open} aria-label={open ? t('Hide debug') : t('Show debug')}
+        title={t('Render debug')} onClick={() => setUi({ debug: !open })}>
         <Bug size={13} />
-        {open && <b>Debug</b>}
+        {open && <b>{t('Debug')}</b>}
         <FrameGraph />
         <span className="toggle-chev"><ChevronDown size={13} /></span>
       </button>
@@ -98,34 +100,35 @@ function DebugControls() {
   const s = useViewer((state) => state.settings);
   const webgl = useViewer((state) => state.backend.name === 'WebGL 2');
   const jnlm = webgl || s.denoiseModel === 'jnlm';
+  const t = useT();
   return (
     <div className="debug-overlay__body">
-      <Field label="Output">
+      <Field label={t('Output')}>
         <Select
-          label="Output"
+          label={t('Output')}
           value={s.output}
           options={[
-            { value: 'final', label: 'Final' }, { value: 'albedo', label: 'Albedo' },
-            { value: 'normal', label: 'Normal' },
-            ...VIEWER_AOVS.map(value => ({value, label: AOV_LABELS[value]}))
+            { value: 'final', label: t('Final') }, { value: 'albedo', label: t('Albedo') },
+            { value: 'normal', label: t('Normal') },
+            ...VIEWER_AOVS.map(value => ({value, label: t(AOV_LABELS[value])}))
           ]}
           onChange={(v) => setSettings({ output: v })}
         />
       </Field>
-      {s.output === 'depth' && <Scrub label="Depth range" value={s.aovDepthFar} min={0.01} max={10000} log onChange={(v) => setSettings({aovDepthFar: v})} />}
-      {s.output === 'position' && <Scrub label="Position scale" value={s.aovPositionScale} min={0.001} max={10000} log onChange={(v) => setSettings({aovPositionScale: v})} />}
-      {s.output === 'motion' && <Scrub label="Motion scale" value={s.aovMotionScale} min={0.01} max={1000} log onChange={(v) => setSettings({aovMotionScale: v})} />}
-      {s.output === 'id' && <Field label="ID component"><Select label="ID component" value={s.aovIdComponent} options={(['object', 'instance', 'material', 'primitive'] as const).map(value => ({value, label: value}))} onChange={(v) => setSettings({aovIdComponent: v})} /></Field>}
-      {!webgl && <Switch label="Display upscale" checked={s.displayUpscale} onChange={(v) => setSettings({displayUpscale: v})}>
-        <span className="field-label">Display upscale</span>
+      {s.output === 'depth' && <Scrub label={t('Depth range')} value={s.aovDepthFar} min={0.01} max={10000} log onChange={(v) => setSettings({aovDepthFar: v})} />}
+      {s.output === 'position' && <Scrub label={t('Position scale')} value={s.aovPositionScale} min={0.001} max={10000} log onChange={(v) => setSettings({aovPositionScale: v})} />}
+      {s.output === 'motion' && <Scrub label={t('Motion scale')} value={s.aovMotionScale} min={0.01} max={1000} log onChange={(v) => setSettings({aovMotionScale: v})} />}
+      {s.output === 'id' && <Field label={t('ID component')}><Select label={t('ID component')} value={s.aovIdComponent} options={(['object', 'instance', 'material', 'primitive'] as const).map(value => ({value, label: t(value)}))} onChange={(v) => setSettings({aovIdComponent: v})} /></Field>}
+      {!webgl && <Switch label={t('Display upscale')} checked={s.displayUpscale} onChange={(v) => setSettings({displayUpscale: v})}>
+        <span className="field-label">{t('Display upscale')}</span>
       </Switch>}
-      <Switch label="Interactive preview" checked={s.previewEnabled} onChange={(v) => setSettings({ previewEnabled: v })}>
-        <span className="field-label">Interactive preview</span>
+      <Switch label={t('Interactive preview')} checked={s.previewEnabled} onChange={(v) => setSettings({ previewEnabled: v })}>
+        <span className="field-label">{t('Interactive preview')}</span>
       </Switch>
       {s.previewEnabled && (
-        <Scrub label="Max preview scale" title="Preview scale relative to the full viewport, independent of final resolution" value={s.previewMaxResolutionScale} min={0.25} max={1} onChange={(v) => setSettings({ previewMaxResolutionScale: v })} />
+        <Scrub label={t('Max preview scale')} title={t('Preview scale relative to the full viewport, independent of final resolution')} value={s.previewMaxResolutionScale} min={0.25} max={1} onChange={(v) => setSettings({ previewMaxResolutionScale: v })} />
       )}
-      {s.denoise && s.denoiseWhileConverging && <Hint>Live denoise also runs while interacting{jnlm ? '.' : ', using the small preview model.'}</Hint>}
+      {s.denoise && s.denoiseWhileConverging && <Hint>{jnlm ? t('Live denoise also runs while interacting.') : t('Live denoise also runs while interacting, using the small preview model.')}</Hint>}
       <Diagnostics />
     </div>
   );
@@ -133,6 +136,7 @@ function DebugControls() {
 
 function Diagnostics() {
   const [diagnostics, setDiagnostics] = useState<EngineDiagnostics | undefined>();
+  const t = useT();
   useEffect(() => {
     const read = () => setDiagnostics(getEngine()?.engine.getDiagnostics());
     read();
@@ -142,12 +146,12 @@ function Diagnostics() {
   if (!diagnostics) return null;
   const shader = diagnostics.shaderCompilation;
   const rows: [string, string][] = [
-    ['Backend', `${diagnostics.backend === 'webgpu' ? 'WebGPU' : 'WebGL 2'} · ${diagnostics.adapterName || 'unknown'}`],
-    ['Drawing buffer', `${diagnostics.width} × ${diagnostics.height}`],
-    ['Shader compile', shader ? `${Math.round(shader.totalTimeMs ?? 0)} ms · ${shader.sourceLines ?? '?'} lines` : '–'],
-    ['Trace time', diagnostics.gpuTraceTiming ? `${diagnostics.gpuTraceTiming.estimatedFullFrameTimeMs?.toFixed(1)} ms / frame` : '–'],
-    ['Texture atlas', diagnostics.textureAtlas ? `${diagnostics.textureAtlas.textureCount} textures · ${(diagnostics.textureAtlas.estimatedBytes / 2 ** 20).toFixed(1)} MiB` : '–'],
-    ['Emissive triangles', String(diagnostics.lightSampling?.emissiveTriangles ?? 0)]
+    [t('Backend'), `${diagnostics.backend === 'webgpu' ? 'WebGPU' : 'WebGL 2'} · ${diagnostics.adapterName || t('unknown')}`],
+    [t('Drawing buffer'), `${diagnostics.width} × ${diagnostics.height}`],
+    [t('Shader compile'), shader ? `${Math.round(shader.totalTimeMs ?? 0)} ms · ${shader.sourceLines ?? '?'} ${t('lines')}` : '–'],
+    [t('Trace time'), diagnostics.gpuTraceTiming ? `${diagnostics.gpuTraceTiming.estimatedFullFrameTimeMs?.toFixed(1)} ms / ${t('frame')}` : '–'],
+    [t('Texture atlas'), diagnostics.textureAtlas ? `${diagnostics.textureAtlas.textureCount} ${t('textures')} · ${(diagnostics.textureAtlas.estimatedBytes / 2 ** 20).toFixed(1)} MiB` : '–'],
+    [t('Emissive triangles'), String(diagnostics.lightSampling?.emissiveTriangles ?? 0)]
   ];
   return (
     <dl className="diagnostics">

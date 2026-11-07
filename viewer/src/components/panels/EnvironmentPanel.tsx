@@ -8,6 +8,7 @@ import { getEngine } from '../../engine/ViewerEngine';
 import { toPathedFiles } from '../../engine/loadModel';
 import { ColorField, Field, Hint, Scrub, Section, Segmented, Switch } from '../ui/controls';
 import { SunTime } from './SunTime';
+import { useT } from '../../i18n';
 
 const formatMB = (bytes: number) => (bytes / 1048576).toFixed(1);
 
@@ -18,6 +19,7 @@ export function EnvironmentPanel() {
   const envLoading = useViewer((state) => state.envLoading);
   const modelRadius = useViewer((state) => state.modelRadius);
   const modelLighting = useViewer((state) => state.modelLighting);
+  const t = useT();
   const grounded = autoGroundedSkybox(modelRadius, s.groundedHeight);
   const groundedAuto = s.groundedHeight === null && s.groundedRadius === null;
   const loadingFraction = envLoading?.total ? envLoading.loaded / envLoading.total : 0;
@@ -25,10 +27,10 @@ export function EnvironmentPanel() {
   const studio = s.lighting === 'studio';
   const thumb = studio ? STUDIO_SWATCH : current?.thumbnail ? `url(${current.thumbnail}) center/cover` : SKY_SWATCH;
   const backgrounds = ([
-    ['environment', studio ? 'Studio' : 'HDRI', { background: thumb }],
-    ['grounded', 'Grounded', { background: thumb }],
-    ['color', 'Color', { background: s.backgroundColor }],
-    ['transparent', 'Transparent', undefined]
+    ['environment', studio ? t('Studio') : 'HDRI', { background: thumb }],
+    ['grounded', t('Grounded'), { background: thumb }],
+    ['color', t('Color'), { background: s.backgroundColor }],
+    ['transparent', t('Transparent'), undefined]
   ] as const).filter(([id]) => !studio || id !== 'grounded');
   // Grounded projection needs an HDRI; studio mode shows its backdrop instead.
   const background = studio && s.background === 'grounded' ? 'environment' : s.background;
@@ -36,25 +38,25 @@ export function EnvironmentPanel() {
     <>
       <div className="lighting-mode">
         <Segmented
-          label="Lighting"
+          label={t('Lighting')}
           value={s.lighting}
           options={[
-            { value: 'environment', label: <><Globe size={13} />Environment</> },
-            { value: 'studio', label: <><Lamp size={13} />Studio</> }
+            { value: 'environment', label: <><Globe size={13} />{t('Environment')}</> },
+            { value: 'studio', label: <><Lamp size={13} />{t('Studio')}</> }
           ]}
           onChange={(v) => setSettings({ lighting: v })}
         />
       </div>
 
       {studio ? <StudioSection /> : <Section
-        title="Environment"
+        title={t('Environment')}
         icon={<Globe size={14} />}
-        value={envLoading ? `Loading ${Math.round(loadingFraction * 100)}%` : s.envId === 'model' ? 'Scene lighting' : current?.name ?? 'Custom HDR'}
+        value={envLoading ? t('Loading {percent}%', { percent: Math.round(loadingFraction * 100) }) : s.envId === 'model' ? t('Scene lighting') : t(current?.name ?? 'Custom HDR')}
       >
-        <div className="env-grid" role="radiogroup" aria-label="Environment map">
+        <div className="env-grid" role="radiogroup" aria-label={t('Environment map')}>
           {modelLighting?.available && <button className="env env--upload" role="radio" aria-checked={s.envId === 'model'}
             data-on={s.envId === 'model' || undefined} onClick={() => setSettings({ envId: 'model', envIntensity: 1, envRotation: 0 })}>
-            <div><Sun size={16} />Scene lighting</div>
+            <div><Sun size={16} />{t('Scene lighting')}</div>
           </button>}
           {ENVIRONMENT_PRESETS.map((preset) => (
             <button
@@ -66,22 +68,22 @@ export function EnvironmentPanel() {
               style={{ background: preset.thumbnail ? `#222 url(${preset.thumbnail}) center/cover` : SKY_SWATCH }}
               onClick={() => setSettings({ envId: preset.id })}
             >
-              <span>{preset.name}</span>
+              <span>{t(preset.name)}</span>
               {envLoading?.id === preset.id && <i className="env__bar" style={{ width: `${Math.max(4, loadingFraction * 100)}%` }} />}
             </button>
           ))}
           <FileTrigger acceptedFileTypes={['.hdr']} onSelect={(files) => files && getEngine()?.loadFiles(toPathedFiles(files))}>
             <Button className="env env--upload" data-on={s.envId === 'custom' || undefined}>
-              <div><Upload size={16} />{s.envId === 'custom' ? 'Custom .hdr' : 'Upload .hdr'}</div>
+              <div><Upload size={16} />{s.envId === 'custom' ? t('Custom .hdr') : t('Upload .hdr')}</div>
             </Button>
           </FileTrigger>
         </div>
         {s.envId === 'sky' && <SunTime value={s.skyTime} onChange={(v) => setSettings({ skyTime: v })} />}
         {envLoading && (
-          <div className="env-loading" role="progressbar" aria-label={`Loading ${envLoading.name}`}
+          <div className="env-loading" role="progressbar" aria-label={t('Loading {name}', { name: t(envLoading.name) })}
             aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(loadingFraction * 100)}>
             <div>
-              <span>Downloading {envLoading.name}</span>
+              <span>{t('Downloading {name}', { name: t(envLoading.name) })}</span>
               <span className="mono">
                 {formatMB(envLoading.loaded)}{envLoading.total ? ` / ${formatMB(envLoading.total)}` : ''} MB
               </span>
@@ -89,24 +91,24 @@ export function EnvironmentPanel() {
             <div className="progress"><i style={{ width: `${Math.max(2, loadingFraction * 100)}%` }} /></div>
           </div>
         )}
-        <Field label="Resolution">
+        <Field label={t('Resolution')}>
           <Segmented
-            label="HDRI resolution"
+            label={t('HDRI resolution')}
             value={s.envResolution}
             disabled={!current?.polyHaven}
             options={ENV_RESOLUTIONS.map((r) => ({ value: r.value, label: <span title={r.size}>{r.label}</span> }))}
             onChange={(v) => setSettings({ envResolution: v })}
           />
         </Field>
-        <Hint>HDRIs by <a href="https://polyhaven.com/hdris" target="_blank" rel="noreferrer">Poly Haven</a> (CC0), loaded on demand.</Hint>
-        {modelLighting?.available && <Hint>Scene lights stay active when you add an environment or studio lighting.</Hint>}
-        <Scrub label="Intensity" value={s.envIntensity} min={0} max={4} step={0.01} onChange={(v) => setSettings({ envIntensity: v })} />
-        <Scrub label="Rotation" value={s.envRotation} min={0} max={360} step={1} unit="°" onChange={(v) => setSettings({ envRotation: v })} />
+        <Hint>{t('HDRIs by')} <a href="https://polyhaven.com/hdris" target="_blank" rel="noreferrer">Poly Haven</a>{t(' (CC0), loaded on demand.')}</Hint>
+        {modelLighting?.available && <Hint>{t('Scene lights stay active when you add an environment or studio lighting.')}</Hint>}
+        <Scrub label={t('Intensity')} value={s.envIntensity} min={0} max={4} step={0.01} onChange={(v) => setSettings({ envIntensity: v })} />
+        <Scrub label={t('Rotation')} value={s.envRotation} min={0} max={360} step={1} unit="°" onChange={(v) => setSettings({ envRotation: v })} />
       </Section>}
-      {!!modelLighting?.warnings.length && <details><summary>{modelLighting.warnings.length} scene warnings</summary>{modelLighting.warnings.map((warning, i) => <Hint key={i}>{warning}</Hint>)}</details>}
+      {!!modelLighting?.warnings.length && <details><summary>{t('{count} scene warnings', { count: modelLighting.warnings.length })}</summary>{modelLighting.warnings.map((warning, i) => <Hint key={i}>{t(warning)}</Hint>)}</details>}
 
-      <Section title="Background" icon={<Image size={14} />}>
-        <div className="bg-cards" data-count={backgrounds.length} role="radiogroup" aria-label="Background">
+      <Section title={t('Background')} icon={<Image size={14} />}>
+        <div className="bg-cards" data-count={backgrounds.length} role="radiogroup" aria-label={t('Background')}>
           {backgrounds.map(([id, label, style]) => (
             <button
               key={id}
@@ -121,33 +123,32 @@ export function EnvironmentPanel() {
           ))}
         </div>
         {s.background === 'color' && (
-          <ColorField label="Color" value={s.backgroundColor} onChange={(hex) => setSettings({ backgroundColor: hex })} />
+          <ColorField label={t('Color')} value={s.backgroundColor} onChange={(hex) => setSettings({ backgroundColor: hex })} />
         )}
         {background === 'grounded' && (
           <>
-            <Scrub label={s.groundedHeight === null ? 'Height · auto' : 'Height'} value={grounded.height} min={0.1} max={50} step={0.05} unit="m"
-              title="Height of the HDRI camera above the ground, in meters" onChange={(v) => setSettings({ groundedHeight: v })} />
-            <Scrub label={s.groundedRadius === null ? 'Radius · auto' : 'Radius'} value={s.groundedRadius ?? grounded.radius} min={2} max={1000} step={1} unit="m"
-              title="Radius of the projected dome, in meters; roughly the distance to the surroundings" onChange={(v) => setSettings({ groundedRadius: v })} />
+            <Scrub label={s.groundedHeight === null ? t('Height · auto') : t('Height')} value={grounded.height} min={0.1} max={50} step={0.05} unit="m"
+              title={t('Height of the HDRI camera above the ground, in meters')} onChange={(v) => setSettings({ groundedHeight: v })} />
+            <Scrub label={s.groundedRadius === null ? t('Radius · auto') : t('Radius')} value={s.groundedRadius ?? grounded.radius} min={2} max={1000} step={1} unit="m"
+              title={t('Radius of the projected dome, in meters; roughly the distance to the surroundings')} onChange={(v) => setSettings({ groundedRadius: v })} />
             <Hint>
-              Projects the HDRI onto the ground so the model stands in the scene. A real HDRI is shot about 1.6 m high;
-              raise the height to shrink the model onto the clean ground near the capture point.
-              {!groundedAuto && <> <button className="hint__link" onClick={() => setSettings({ groundedHeight: null, groundedRadius: null })}>Use auto</button></>}
+              {t('Projects the HDRI onto the ground so the model stands in the scene. A real HDRI is shot about 1.6 m high; raise the height to shrink the model onto the clean ground near the capture point.')}
+              {!groundedAuto && <> <button className="hint__link" onClick={() => setSettings({ groundedHeight: null, groundedRadius: null })}>{t('Use auto')}</button></>}
             </Hint>
           </>
         )}
-        {background === 'transparent' && <Hint>The {studio ? 'studio' : 'environment'} still lights the scene. Exported PNGs keep the alpha channel.</Hint>}
+        {background === 'transparent' && <Hint>{t('The {mode} still lights the scene. Exported PNGs keep the alpha channel.', { mode: studio ? t('studio') : t('environment') })}</Hint>}
       </Section>
 
       <Section
-        title="Ground shadow"
+        title={t('Ground shadow')}
         icon={<Square size={14} />}
-        actions={<Switch label="Ground shadow" checked={s.groundShadow} onChange={(v) => setSettings({ groundShadow: v })} />}
+        actions={<Switch label={t('Ground shadow')} checked={s.groundShadow} onChange={(v) => setSettings({ groundShadow: v })} />}
       >
         {s.groundShadow && (
           <>
-            <Scrub label="Opacity" value={s.groundOpacity} min={0} max={1} onChange={(v) => setSettings({ groundOpacity: v })} />
-            <Hint>A shadow-catcher plane under the model. Pair it with a transparent background for product shots.</Hint>
+            <Scrub label={t('Opacity')} value={s.groundOpacity} min={0} max={1} onChange={(v) => setSettings({ groundOpacity: v })} />
+            <Hint>{t('A shadow-catcher plane under the model. Pair it with a transparent background for product shots.')}</Hint>
           </>
         )}
       </Section>
@@ -160,9 +161,10 @@ const STUDIO_SWATCH = 'linear-gradient(180deg,#4a4b50 0%,#2e2f33 55%,#1c1d20 100
 function StudioSection() {
   const s = useViewer((state) => state.settings);
   const preset = findStudioPreset(s.studioPreset);
+  const t = useT();
   return (
-    <Section title="Studio" icon={<Lamp size={14} />} value={preset.name}>
-      <div className="studio-grid" role="radiogroup" aria-label="Studio lighting preset">
+    <Section title={t('Studio')} icon={<Lamp size={14} />} value={t(preset.name)}>
+      <div className="studio-grid" role="radiogroup" aria-label={t('Studio lighting preset')}>
         {STUDIO_PRESETS.map((p) => (
           <button
             key={p.id}
@@ -170,23 +172,23 @@ function StudioSection() {
             role="radio"
             aria-checked={p.id === preset.id}
             data-on={p.id === preset.id || undefined}
-            title={p.tag}
+            title={t(p.tag)}
             onClick={() => setSettings({ studioPreset: p.id })}
           >
             <StudioDiagram preset={p} rotation={s.studioRotation} size={s.studioSize} />
-            <span><strong>{p.name}</strong><small>{p.tag}</small></span>
+            <span><strong>{t(p.name)}</strong><small>{t(p.tag)}</small></span>
           </button>
         ))}
       </div>
-      <Scrub label="Intensity" value={s.studioIntensity} min={0} max={4} step={0.01} onChange={(v) => setSettings({ studioIntensity: v })} />
-      <Scrub label="Rotation" value={s.studioRotation} min={-180} max={180} step={1} unit="°" onChange={(v) => setSettings({ studioRotation: v })} />
-      <Scrub label="Size" value={s.studioSize} min={0.25} max={3} step={0.01} unit="×"
-        title="Panel size: larger panels give softer shadows and highlights at the same exposure"
+      <Scrub label={t('Intensity')} value={s.studioIntensity} min={0} max={4} step={0.01} onChange={(v) => setSettings({ studioIntensity: v })} />
+      <Scrub label={t('Rotation')} value={s.studioRotation} min={-180} max={180} step={1} unit="°" onChange={(v) => setSettings({ studioRotation: v })} />
+      <Scrub label={t('Size')} value={s.studioSize} min={0.25} max={3} step={0.01} unit="×"
+        title={t('Panel size: larger panels give softer shadows and highlights at the same exposure')}
         onChange={(v) => setSettings({ studioSize: v })} />
-      <Scrub label="Ambient" value={s.studioAmbient} min={0} max={1} step={0.01}
-        title="Fill from the studio walls and ceiling" onChange={(v) => setSettings({ studioAmbient: v })} />
-      <ColorField label="Ambient color" value={s.studioAmbientColor} onChange={(hex) => setSettings({ studioAmbientColor: hex })} />
-      <Hint>Softboxes placed around the model and scaled to its size; the front faces +Z, where the camera starts. The ambient fill is the studio's walls: it softens shadows and is the Studio background.</Hint>
+      <Scrub label={t('Ambient')} value={s.studioAmbient} min={0} max={1} step={0.01}
+        title={t('Fill from the studio walls and ceiling')} onChange={(v) => setSettings({ studioAmbient: v })} />
+      <ColorField label={t('Ambient color')} value={s.studioAmbientColor} onChange={(hex) => setSettings({ studioAmbientColor: hex })} />
+      <Hint>{t('Softboxes placed around the model and scaled to its size; the front faces +Z, where the camera starts. The ambient fill is the walls of the studio: it softens shadows and is the Studio background.')}</Hint>
     </Section>
   );
 }

@@ -9,6 +9,7 @@ import {
   fromTHREECamera,
 } from '@meimu/mutracer';
 import { VIEWER_AOVS, DEFAULT_SETTINGS, autoGroundedSkybox, renderResolutionScale, resetSettings, setSettings, setUi, useViewer, showToast, writeHash, type RenderPhase, type Settings, type TreeNode } from '../store';
+import { t } from '../i18n';
 import { Environment, loadHDR, parseHDR, type EquirectData } from './environment';
 import { ENVIRONMENT_PRESETS, MODEL_PRESETS, environmentUrl } from './presets';
 import {
@@ -155,7 +156,7 @@ export class ViewerEngine {
     this.preview = new Render(this.engine, {resolutionScale: .5, timeBudgetMs: 80, adaptiveResolution: {targetFrameMs: 80, minScale: .125}, maxSamples: 1,
       bounces: 2, bevel: false, dispersionWavelengths: 1, directLightCandidates: 2});
     this.final = new Render(this.engine, {fallback: this.preview, batchSamples: true});
-    this.engine.on('error', error => showToast(`Rendering failed: ${error.message}`, 'error'));
+    this.engine.on('error', error => showToast(t('Rendering failed: {message}', { message: error.message }), 'error'));
 
     this.scene.add(this.modelGroup);
     this.studioRig.name = 'Studio lights';
@@ -306,7 +307,7 @@ export class ViewerEngine {
   async loadFiles(files: PathedFile[]) {
     if (MATERIALX_IMPORT && files.some((f) => isMaterialXFile(f.path)) && !files.some((f) => isModelFile(f.path))) {
       const material = get().material;
-      if (!material) return showToast('Select a material to apply the MaterialX file to', 'error');
+      if (!material) return showToast(t('Select a material to apply the MaterialX file to'), 'error');
       return this.importMaterialX(material.id, files);
     }
     const pbrt = files.some(f => /\.pbrt(?:\.gz)?$/i.test(f.path));
@@ -316,12 +317,12 @@ export class ViewerEngine {
       try {
         this.setEnvironmentData(parseHDR(await hdr.file.arrayBuffer()), 'custom');
       } catch (error) {
-        showToast(`Could not read ${hdr.file.name}: ${(error as Error).message}`, 'error');
+        showToast(t('Could not read {file}: {message}', { file: hdr.file.name, message: (error as Error).message }), 'error');
       }
     }
     if (!files.some((f) => isModelFile(f.path))) {
-      if (!hdr) showToast(MATERIALX_IMPORT ? 'Drop a .glb, a .gltf with its files, an .hdr environment, or a MaterialX .mtlx or .zip'
-        : 'Drop a .glb, a .gltf with its files, or an .hdr environment', 'error');
+      if (!hdr) showToast(MATERIALX_IMPORT ? t('Drop a .glb, a .gltf with its files, an .hdr environment, or a MaterialX .mtlx or .zip')
+        : t('Drop a .glb, a .gltf with its files, or an .hdr environment'), 'error');
       return;
     }
     const main = files.find((f) => isModelFile(f.path))!;
@@ -353,7 +354,7 @@ export class ViewerEngine {
     } catch (error) {
       if (token !== this.loadToken) return;
       set({ loading: null });
-      showToast(`Could not load ${name}: ${(error as Error).message}`, 'error');
+      showToast(t('Could not load {name}: {message}', { name, message: (error as Error).message }), 'error');
       return false;
     }
     const id = restored?.id ?? (meta.presetId ? `preset:${meta.presetId}` : crypto.randomUUID());
@@ -412,7 +413,7 @@ export class ViewerEngine {
       loading: { name, stage: 'bvh', loaded: 0, total: 0 }
     });
     this.awaitingFirstSample = true;
-    if (model.pbrt?.warnings.length) showToast(`${model.pbrt.warnings.length} PBRT import warnings`, 'warning', [{ label: 'Details', onClick: () => setUi({ right: true, tab: 'environment' }) }]);
+    if (model.pbrt?.warnings.length) showToast(t('{count} PBRT import warnings', { count: model.pbrt.warnings.length }), 'warning', [{ label: 'Details', onClick: () => setUi({ right: true, tab: 'environment' }) }]);
     writeHash(this.settings, meta.presetId);
     this.saveCamera();
     if (persist) {
@@ -596,7 +597,7 @@ export class ViewerEngine {
     try {
       await this.downloadEnvironment(url, id, name);
     } catch (error) {
-      showToast(`Could not load ${preset.name}: ${(error as Error).message}. Using the procedural sky.`, 'warning');
+      showToast(t('Could not load {name}: {message}. Using the procedural sky.', { name: preset.name, message: (error as Error).message }), 'warning');
       useViewer.setState((s) => ({ settings: { ...s.settings, envId: 'sky' } }));
     }
   }
@@ -611,7 +612,7 @@ export class ViewerEngine {
     try {
       await this.downloadEnvironment(url, 'custom', url.split('?')[0].split('/').pop() || 'Environment');
     } catch (error) {
-      showToast(`Could not load environment: ${(error as Error).message}`, 'error');
+      showToast(t('Could not load environment: {message}', { message: (error as Error).message }), 'error');
     }
   }
 
@@ -801,7 +802,7 @@ export class ViewerEngine {
     if (this.disposed || token !== this.denoiserUpdateToken) return;
     set({ oidnLoading: false });
     const failed = results.find(result => result.status === 'rejected');
-    if (failed?.status === 'rejected') showToast(`Denoiser failed to load: ${failed.reason.message}`, 'error');
+    if (failed?.status === 'rejected') showToast(t('Denoiser failed to load: {message}', { message: failed.reason.message }), 'error');
   }
 
   // ----------------------------------------------------------------- camera
@@ -1207,7 +1208,7 @@ export class ViewerEngine {
       const objectId = this.pickObjects.get(hit.object);
       if (objectId) this.select(objectId, this.pickMaterials.get(hit.material) ?? null);
     } catch (error) {
-      if (request === this.pickRequest) showToast(`Could not select object: ${(error as Error).message}`, 'error');
+      if (request === this.pickRequest) showToast(t('Could not select object: {message}', { message: (error as Error).message }), 'error');
     }
   }
 
@@ -1256,7 +1257,7 @@ export class ViewerEngine {
     try {
       await this.materials.setTexture(materialId, slot, file, label);
     } catch (error) {
-      showToast(`Could not read the image: ${(error as Error).message}`, 'error');
+      showToast(t('Could not read the image: {message}', { message: (error as Error).message }), 'error');
     }
   }
 
@@ -1308,7 +1309,7 @@ export class ViewerEngine {
       }));
       return !signal?.aborted;
     } catch (error) {
-      if (!signal?.aborted) showToast(`Could not load ${name} from Poly Haven: ${(error as Error).message}`, 'error');
+      if (!signal?.aborted) showToast(t('Could not load {name} from Poly Haven: {message}', { name, message: (error as Error).message }), 'error');
       return false;
     }
   }
@@ -1338,10 +1339,12 @@ export class ViewerEngine {
       // MaterialX images have their origin at the bottom left.
       await this.materials.setTextures(materialId, maps, { ...MATERIAL_BASE, ...material.values }, `${name} MaterialX`,
         undefined, { uvScale: material.uvScale, flipY: true });
-      showToast(warnings.length ? `Imported ${name}. Not supported: ${warnings.join('; ')}` : `Imported ${name}`, warnings.length ? 'warning' : 'success');
+      showToast(warnings.length
+        ? t('Imported {name}. Not supported: {warnings}', { name, warnings: warnings.join('; ') })
+        : t('Imported {name}', { name }), warnings.length ? 'warning' : 'success');
       return true;
     } catch (error) {
-      showToast(`Could not import ${name}: ${(error as Error).message}`, 'error');
+      showToast(t('Could not import {name}: {message}', { name, message: (error as Error).message }), 'error');
       return false;
     }
   }
@@ -1459,7 +1462,7 @@ export class ViewerEngine {
       const blob = await this.captureImage();
       this.downloadImage(blob, samples, 'viewport');
     } catch (error) {
-      showToast(`Export failed: ${(error as Error).message}`, 'error');
+      showToast(t('Export failed: {message}', { message: (error as Error).message }), 'error');
     }
   }
 
@@ -1469,7 +1472,7 @@ export class ViewerEngine {
       const blob = await this.renderImage(options);
       this.downloadImage(blob, options.samples);
     } catch (error) {
-      if ((error as Error).name !== 'AbortError') showToast(`Export failed: ${(error as Error).message}`, 'error');
+      if ((error as Error).name !== 'AbortError') showToast(t('Export failed: {message}', { message: (error as Error).message }), 'error');
     }
   }
 
@@ -1481,7 +1484,7 @@ export class ViewerEngine {
     link.href = url;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    showToast(`Saved ${link.download}`, 'success');
+    showToast(t('Saved {name}', { name: link.download }), 'success');
   }
 
   captureImage(type = 'image/png', quality?: number): Promise<Blob> {

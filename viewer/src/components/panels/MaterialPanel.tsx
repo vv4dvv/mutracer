@@ -10,6 +10,7 @@ import {
 import { ColorField, Hint, NumberField, Scrub, Section, Segmented, Select, Switch } from '../ui/controls';
 import { PolyHavenLogo } from '../PolyHavenLogo';
 import { toPathedFiles } from '../../engine/droppedFiles';
+import { useT } from '../../i18n';
 
 // Kept across material selections.
 let lastPresetCategory: MaterialPresetCategory = 'basic';
@@ -20,13 +21,14 @@ export function MaterialPanel() {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const browsing = useViewer((s) => s.ui.textureBrowser);
   const webgl = useViewer((s) => s.backend?.name === 'WebGL 2');
+  const t = useT();
 
   if (!material) {
     return (
       <div className="empty-panel">
         <MousePointerClick size={22} />
-        <strong>No material selected</strong>
-        <span>Click an object in the viewport or pick a material in the scene tree.</span>
+        <strong>{t('No material selected')}</strong>
+        <span>{t('Click an object in the viewport or pick a material in the scene tree.')}</span>
       </div>
     );
   }
@@ -48,19 +50,20 @@ export function MaterialPanel() {
         <i className="mat-ball" style={{ '--c': linearToHex(base) } as React.CSSProperties} />
         <div>
           <strong>{material.name}</strong>
-          <small>{material.meshName || 'Mesh'}{material.users > 1 ? ` · shared by ${material.users} meshes` : ''}</small>
+          <small>{material.meshName || t('Mesh')}{material.users > 1 ? ` · ${t('shared by {count} meshes', { count: material.users })}` : ''}</small>
         </div>
-        <button className="icon-btn sm" title="Reset to loaded values" aria-label="Reset material" onClick={() => getEngine()?.resetMaterial(material.id)}>
+        <button className="icon-btn sm" title={t('Reset to loaded values')} aria-label={t('Reset material')} onClick={() => getEngine()?.resetMaterial(material.id)}>
           <RotateCcw size={13} />
         </button>
       </div>
       <div className="mat-presets">
-        <Segmented label="Preset category" value={presetCategory} options={MATERIAL_PRESET_CATEGORIES}
+        <Segmented label={t('Preset category')} value={presetCategory}
+          options={MATERIAL_PRESET_CATEGORIES.map((category) => ({ value: category.value, label: t(category.label) }))}
           onChange={(v) => { lastPresetCategory = v; setPresetCategory(v); }} />
-        <div className="preset-grid" aria-label="Material presets">
+        <div className="preset-grid" aria-label={t('Material presets')}>
           {MATERIAL_PRESETS.filter((preset) => preset.category === presetCategory).map((preset) => (
-            <button key={preset.id} className="preset" title={`Apply ${preset.label}`} onClick={() => set(preset.values, `${preset.label} preset`)}>
-              <img src={thumbnailUrl(`material-${preset.id}`)} alt="" /><span>{preset.label}</span>
+            <button key={preset.id} className="preset" title={t('Apply {name}', { name: t(preset.label) })} onClick={() => set(preset.values, `${preset.label} preset`)}>
+              <img src={thumbnailUrl(`material-${preset.id}`)} alt="" /><span>{t(preset.label)}</span>
             </button>
           ))}
         </div>
@@ -68,7 +71,7 @@ export function MaterialPanel() {
       <div className="tex-browse hide-m">
         <button className="btn btn--wide" aria-pressed={browsing} data-on={browsing || undefined}
           onClick={() => setUi({ textureBrowser: !browsing })}>
-          <PolyHavenLogo />{browsing ? 'Hide Poly Haven textures' : 'Browse Poly Haven textures'}
+          <PolyHavenLogo />{browsing ? t('Hide Poly Haven textures') : t('Browse Poly Haven textures')}
         </button>
         {MATERIALX_IMPORT && <MaterialXImport materialId={material.id} />}
       </div>
@@ -77,7 +80,7 @@ export function MaterialPanel() {
         return (
           <Section
             key={group.id}
-            title={group.label}
+            title={t(group.label)}
             value={weight !== undefined ? formatWeight(weight) : undefined}
             open={isOpen(group)}
             onOpenChange={(open) => setOpenGroups((g) => ({ ...g, [group.id]: open }))}
@@ -89,20 +92,20 @@ export function MaterialPanel() {
                 disabled={group.id === 'displacement' && webgl}
                 onChange={(values) => set(values, paramLabel(group, param), `${material.id}:${param.key}`)} />
             ))}
-            {group.id === 'displacement' && <Hint>{webgl ? 'Displacement requires WebGPU.' :
-              'Offset = texture × Scale + Bias, in mesh-local units. Sliders follow object size. Use the numeric inputs to enter any value. A displacement texture is required.'}</Hint>}
+            {group.id === 'displacement' && <Hint>{webgl ? t('Displacement requires WebGPU.') :
+              t('Offset = texture × Scale + Bias, in mesh-local units. Sliders follow object size. Use the numeric inputs to enter any value. A displacement texture is required.')}</Hint>}
           </Section>
         );
       })}
       <Section
-        title="Textures"
+        title={t('Textures')}
         value={String(Object.keys(material.maps).length)}
         open={openGroups.textures ?? Object.keys(material.maps).length > 0}
         onOpenChange={(open) => setOpenGroups((g) => ({ ...g, textures: open }))}
       >
         <TextureSlots material={material} />
       </Section>
-      {material.textures.length > 0 && <Hint>Values marked with a texture swatch multiply the texture.</Hint>}
+      {material.textures.length > 0 && <Hint>{t('Values marked with a texture swatch multiply the texture.')}</Hint>}
     </>
   );
 }
@@ -111,11 +114,12 @@ export function MaterialPanel() {
 function MaterialXImport({ materialId }: { materialId: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const t = useT();
   return (
     <>
-      <button className="btn btn--wide" disabled={busy} title="A .zip package, or a .mtlx with its texture images. Folders can be dropped on the viewport."
+      <button className="btn btn--wide" disabled={busy} title={t('A .zip package, or a .mtlx with its texture images. Folders can be dropped on the viewport.')}
         onClick={() => input.current?.click()}>
-        <FileUp size={14} />{busy ? 'Importing MaterialX…' : 'Import MaterialX'}
+        <FileUp size={14} />{busy ? t('Importing MaterialX…') : t('Import MaterialX')}
       </button>
       <input ref={input} type="file" hidden multiple accept=".mtlx,.zip,image/png,image/jpeg,image/webp,image/avif"
         onChange={async (e) => {
@@ -139,23 +143,25 @@ function ParamControl({
   onChange: (values: MaterialValues) => void;
   disabled?: boolean;
 }) {
+  const t = useT();
+  const label = t(param.label);
   const badge = 'texture' in param && param.texture && textures.has(param.texture)
-    ? <i className="tex" title="Multiplied by a texture" /> : null;
+    ? <i className="tex" title={t('Multiplied by a texture')} /> : null;
   if (param.kind === 'color') {
     const value = values[param.key] as [number, number, number];
-    return <ColorField label={param.label} badge={badge} value={linearToHex(value)} onChange={(hex) => onChange({ [param.key]: hexToLinear(hex) })} />;
+    return <ColorField label={label} badge={badge} value={linearToHex(value)} onChange={(hex) => onChange({ [param.key]: hexToLinear(hex) })} />;
   }
   if (param.kind === 'boolean') {
     return (
-      <Switch label={param.label} checked={Boolean(values[param.key])} onChange={(v) => onChange({ [param.key]: v })}>
-        <span className="field-label">{param.label}</span>
+      <Switch label={label} checked={Boolean(values[param.key])} onChange={(v) => onChange({ [param.key]: v })}>
+        <span className="field-label">{label}</span>
       </Switch>
     );
   }
   return (
     <Scrub
-      label={<>{param.label}{badge}</>}
-      title={param.key === 'displacementScale' || param.key === 'displacementBias' ? param.key : param.label}
+      label={<>{label}{badge}</>}
+      title={param.key === 'displacementScale' || param.key === 'displacementBias' ? param.key : label}
       value={Number(values[param.key])}
       min={param.min}
       max={param.max}
@@ -173,16 +179,17 @@ function TextureSlots({ material }: { material: SelectedMaterial }) {
   const input = useRef<HTMLInputElement>(null);
   const target = useRef<TextureKey | null>(null);
   const [dropTarget, setDropTarget] = useState<TextureKey | null>(null);
+  const t = useT();
   const wraps = [
-    {value:'repeat' as const,label:'Repeat'},
-    {value:'clamp-to-edge' as const,label:'Clamp to edge'},
-    {value:'mirrored-repeat' as const,label:'Mirrored repeat'}
+    {value:'repeat' as const,label:t('Repeat')},
+    {value:'clamp-to-edge' as const,label:t('Clamp to edge')},
+    {value:'mirrored-repeat' as const,label:t('Mirrored repeat')}
   ];
   const label = (slot: TextureKey) => TEXTURE_SLOTS.find((s) => s.key === slot)!.label;
   const upload = (slot: TextureKey, file: File | undefined) => {
     if (slot === 'displacementMap' && webgl) return;
     if (!file) return;
-    if (!file.type.startsWith('image/')) return showToast(`${file.name} is not an image`, 'error');
+    if (!file.type.startsWith('image/')) return showToast(t('{name} is not an image', { name: file.name }), 'error');
     void getEngine()?.setMaterialTexture(material.id, slot, file, `${label(slot)} texture`);
   };
   return (
@@ -192,6 +199,7 @@ function TextureSlots({ material }: { material: SelectedMaterial }) {
         const has = thumb !== undefined;
         const sampling = material.sampling[key];
         const disabled = key === 'displacementMap' && webgl;
+        const slotLabel = t(label);
         return (
           <div
             key={key}
@@ -204,7 +212,7 @@ function TextureSlots({ material }: { material: SelectedMaterial }) {
               e.stopPropagation();
               setDropTarget(key);
             }}
-            onDragLeave={() => setDropTarget((t) => (t === key ? null : t))}
+            onDragLeave={() => setDropTarget((current) => (current === key ? null : current))}
             onDrop={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -212,36 +220,36 @@ function TextureSlots({ material }: { material: SelectedMaterial }) {
               upload(key, e.dataTransfer.files[0]);
             }}
           >
-            <button className="tex-slot__thumb" title={has ? `Replace ${label.toLowerCase()} texture` : `Upload ${label.toLowerCase()} texture`}
+            <button className="tex-slot__thumb" title={has ? t('Replace {name} texture', { name: slotLabel }) : t('Upload {name} texture', { name: slotLabel })}
               disabled={key === 'displacementMap' && webgl}
-              aria-label={has ? `Replace ${label} texture` : `Upload ${label} texture`}
+              aria-label={has ? t('Replace {name} texture', { name: slotLabel }) : t('Upload {name} texture', { name: slotLabel })}
               onClick={() => { target.current = key; input.current?.click(); }}>
               {thumb ? <img src={thumb} alt="" /> : has ? <i className="tex" /> : <ImagePlus size={14} />}
             </button>
-            <span className="tex-slot__label"><b>{label}</b><small>{hint}</small></span>
+            <span className="tex-slot__label"><b>{slotLabel}</b><small>{t(hint)}</small></span>
             {has && (
-              <button className="icon-btn icon-btn--bare xs" title={`Remove ${label.toLowerCase()} texture`} aria-label={`Remove ${label} texture`}
+              <button className="icon-btn icon-btn--bare xs" title={t('Remove {name} texture', { name: slotLabel })} aria-label={t('Remove {name} texture', { name: slotLabel })}
                 onClick={() => void getEngine()?.setMaterialTexture(material.id, key, null, `Remove ${label.toLowerCase()} texture`)}>
                 <X size={12} />
               </button>
             )}
             {sampling && <details className="tex-slot__settings">
-              <summary>Wrap &amp; repeat</summary>
-              <div role="group" aria-label={`${label} texture sampling`}>
+              <summary>{t('Wrap & repeat')}</summary>
+              <div role="group" aria-label={t('{name} texture sampling', { name: slotLabel })}>
                 <div className="tex-slot__wrap">
                   <div className="tex-slot__wrap-axis">
-                    <span className="field-label">Wrap S</span>
-                    <Select label={`${label} wrap S`} value={sampling.wrapS} options={wraps} disabled={disabled}
+                    <span className="field-label">{t('Wrap S')}</span>
+                    <Select label={t('{name} wrap S', { name: slotLabel })} value={sampling.wrapS} options={wraps} disabled={disabled}
                       onChange={wrapS => getEngine()?.setMaterialTextureSampling(material.id,key,{wrapS},`${label} wrap S`)} />
                   </div>
                   <div className="tex-slot__wrap-axis">
-                    <span className="field-label">Wrap T</span>
-                    <Select label={`${label} wrap T`} value={sampling.wrapT} options={wraps} disabled={disabled}
+                    <span className="field-label">{t('Wrap T')}</span>
+                    <Select label={t('{name} wrap T', { name: slotLabel })} value={sampling.wrapT} options={wraps} disabled={disabled}
                       onChange={wrapT => getEngine()?.setMaterialTextureSampling(material.id,key,{wrapT},`${label} wrap T`)} />
                   </div>
                 </div>
                 <div className="tex-slot__repeat">
-                  {[0,1].map(axis => <NumberField key={axis} label={`Repeat ${axis===0?'S':'T'}`} value={sampling.uvScale[axis]} step={.1} disabled={disabled}
+                  {[0,1].map(axis => <NumberField key={axis} label={t('Repeat {axis}', { axis: axis === 0 ? 'S' : 'T' })} value={sampling.uvScale[axis]} step={.1} disabled={disabled}
                     onChange={value => {
                       const uvScale:[number,number]=[...sampling.uvScale]; uvScale[axis]=value;
                       getEngine()?.setMaterialTextureSampling(material.id,key,{uvScale},`${label} repeat ${axis===0?'S':'T'}`,`${material.id}:${key}:repeat:${axis}`);
@@ -257,7 +265,7 @@ function TextureSlots({ material }: { material: SelectedMaterial }) {
           if (target.current) upload(target.current, e.currentTarget.files?.[0]);
           e.currentTarget.value = '';
         }} />
-      <Hint>Drop an image on a slot to replace its texture. Edits are kept for this model until another model is opened.</Hint>
+      <Hint>{t('Drop an image on a slot to replace its texture. Edits are kept for this model until another model is opened.')}</Hint>
     </div>
   );
 }

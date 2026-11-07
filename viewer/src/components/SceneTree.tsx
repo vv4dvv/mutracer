@@ -3,6 +3,7 @@ import { Box, Camera, ChevronDown, Eye, EyeOff, Folder, Lightbulb, Search, Video
 import { useViewer } from '../store';
 import { flattenTree, indexTree, revealTreeRow, treeAncestors, treeWindow, TREE_ROW_HEIGHT } from './sceneTreeRows';
 import { getEngine } from '../engine/ViewerEngine';
+import { useT } from '../i18n';
 
 const ICONS = { group: Folder, mesh: Box, light: Lightbulb, camera: Camera };
 
@@ -17,6 +18,7 @@ export function SceneTree() {
   const selection = useViewer((s) => s.selection);
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const t = useT();
 
   const treeRef = useRef<HTMLDivElement>(null);
   const pendingReveal = useRef(false);
@@ -109,20 +111,20 @@ export function SceneTree() {
   };
 
   return (
-    <section className="panel scene-panel" aria-label="Scene">
+    <section className="panel scene-panel" aria-label={t('Scene')}>
       <div className="panel-head">
-        <h2>Scene</h2>
+        <h2>{t('Scene')}</h2>
         {model && <span className="count" title={model.name}>{model.name}</span>}
       </div>
       <label className="search">
         <Search size={13} />
-        <input placeholder="Search objects" value={query} onChange={(e) => setQuery(e.currentTarget.value)} />
-        {query ? <button className="icon-btn icon-btn--bare xs" aria-label="Clear search" onClick={() => setQuery('')}><X size={12} /></button> : <kbd>/</kbd>}
+        <input placeholder={t('Search objects')} value={query} onChange={(e) => setQuery(e.currentTarget.value)} />
+        {query ? <button className="icon-btn icon-btn--bare xs" aria-label={t('Clear search')} onClick={() => setQuery('')}><X size={12} /></button> : <kbd>/</kbd>}
       </label>
-      <div ref={treeRef} className="tree" role="tree" aria-label="Scene objects" tabIndex={0}
+      <div ref={treeRef} className="tree" role="tree" aria-label={t('Scene objects')} tabIndex={0}
         aria-activedescendant={activeRow && rows.indexOf(activeRow) >= window.start && rows.indexOf(activeRow) < window.end ? rowId(activeRow.key) : undefined}
         onKeyDown={onKeyDown} onScroll={(e) => setViewport({ top: e.currentTarget.scrollTop, height: e.currentTarget.clientHeight })}>
-        {rows.length === 0 && <div className="tree-empty">{query ? 'No matching objects' : 'Nothing loaded yet'}</div>}
+        {rows.length === 0 && <div className="tree-empty">{query ? t('No matching objects') : t('Nothing loaded yet')}</div>}
         <div className="tree-space" role="presentation" style={{ height: rows.length * TREE_ROW_HEIGHT }}>
           {rows.slice(window.start, window.end).map((row, offset) => {
             const { node, depth, material } = row;
@@ -146,7 +148,7 @@ export function SceneTree() {
                   <span className="chev" />
                   <span className="ico"><i className="swatch" style={{ background: material.color }} /></span>
                   <span className="label">{material.name}</span>
-                  <span className="meta">material</span>
+                  <span className="meta">{t('material')}</span>
                   <span className="eye" />
                 </div>
               );
@@ -173,24 +175,24 @@ export function SceneTree() {
               >
                 <span className="chev">
                   {row.hasChildren && (
-                    <button aria-label={isCollapsed ? 'Expand' : 'Collapse'} tabIndex={-1} onClick={(e) => { e.stopPropagation(); activate(row.key); toggle(row); }}>
+                    <button aria-label={isCollapsed ? t('Expand') : t('Collapse')} tabIndex={-1} onClick={(e) => { e.stopPropagation(); activate(row.key); toggle(row); }}>
                       <ChevronDown size={13} />
                     </button>
                   )}
                 </span>
                 <span className="ico"><Icon size={13} /></span>
                 <span className="label">{node.name}</span>
-                <span className="meta">{node.kind === 'mesh' ? formatCount(node.triangles) : node.kind === 'group' ? node.children.length || '' : node.kind}</span>
+                <span className="meta">{node.kind === 'mesh' ? formatCount(node.triangles) : node.kind === 'group' ? node.children.length || '' : t(node.kind)}</span>
                 {node.kind === 'camera' && <button
                   className="tree-camera-action"
-                  aria-label={`Apply camera ${node.name}`}
-                  title={`Apply camera ${node.name}`}
+                  aria-label={t('Apply camera {name}', { name: node.name })}
+                  title={t('Apply camera {name}', { name: node.name })}
                   onClick={(e) => { e.stopPropagation(); getEngine()?.applyModelCamera(node.id); }}
                   onKeyDown={(e) => e.stopPropagation()}
                 ><Video size={13} /></button>}
                 <button
                   className="eye"
-                  aria-label={node.visible ? `Hide ${node.name}` : `Show ${node.name}`}
+                  aria-label={node.visible ? t('Hide {name}', { name: node.name }) : t('Show {name}', { name: node.name })}
                   tabIndex={-1}
                   onClick={(e) => { e.stopPropagation(); getEngine()?.setVisible(node.id, !node.visible); }}
                 >
@@ -202,9 +204,9 @@ export function SceneTree() {
         </div>
       </div>
       <div className="scene-foot">
-        <div><b>{info.meshes}</b><span>meshes</span></div>
-        <div><b>{formatCount(info.triangles)}</b><span>triangles</span></div>
-        <div><b>{info.materials}</b><span>materials</span></div>
+        <div><b>{info.meshes}</b><span>{t('meshes')}</span></div>
+        <div><b>{formatCount(info.triangles)}</b><span>{t('triangles')}</span></div>
+        <div><b>{info.materials}</b><span>{t('materials')}</span></div>
       </div>
     </section>
   );

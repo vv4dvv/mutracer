@@ -4,6 +4,7 @@ import { VIEWER_AOVS, setSettings, useViewer, type RenderPhase } from '../store'
 import { Field, Select, Switch } from './ui/controls';
 import { ResolutionSelect } from './ResolutionSelect';
 import { ViewControls } from './ViewControls';
+import { useT } from '../i18n';
 
 const LABELS: Record<RenderPhase, string> = {
   starting: 'Starting',
@@ -26,12 +27,13 @@ function formatTime(seconds: number) {
 
 /** Circular sample progress. Denoising and loading phases spin. */
 function ProgressRing({ progress, phase }: { progress: number; phase: RenderPhase }) {
+  const t = useT();
   const r = 10;
   const c = 2 * Math.PI * r;
   const spinning = phase === 'previewing' || phase === 'denoising' || phase === 'preparing' || phase === 'compiling' || phase === 'starting';
   return (
     <span className="ring" data-phase={phase} data-spinning={spinning || undefined}
-      role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} aria-label="Sample progress">
+      role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} aria-label={t('Sample progress')}>
       <svg className="ring__svg" viewBox="0 0 26 26" aria-hidden>
         <circle className="ring__track" cx="13" cy="13" r={r} />
         <circle
@@ -57,6 +59,7 @@ export function StatusBar() {
   const settings = useViewer((s) => s.settings);
   const paused = useViewer((s) => s.paused);
   const playing = useViewer((s) => s.animation?.playing ?? false);
+  const t = useT();
   const { phase, samples, elapsed, msPerSample } = stats;
   const { maxSamples } = settings;
   const sampleTarget = settings.output === 'id' || settings.output === 'motion' ? 1
@@ -73,12 +76,14 @@ export function StatusBar() {
       <ViewControls />
       <div className="dock__summary">
         <ProgressRing progress={progress} phase={phase} />
-        <div className="dock__status" title={done && msPerSample ? `${elapsed.toFixed(1)} s · ${msPerSample.toFixed(1)} ms per sample` : undefined}>
-          <b>{playing && (phase === 'previewing' || phase === 'converging') ? 'Playing' : LABELS[phase]}</b>
+        <div className="dock__status" title={done && msPerSample
+          ? t('{elapsed} s · {msPerSample} ms per sample', { elapsed: elapsed.toFixed(1), msPerSample: msPerSample.toFixed(1) })
+          : undefined}>
+          <b>{playing && (phase === 'previewing' || phase === 'converging') ? t('Playing') : t(LABELS[phase])}</b>
           <span className="mono"><span className="dock__spp">{samples}</span><span className="dock__unit"> spp</span>{time && <span className="dock__time"> · {time}</span>}</span>
         </div>
-        {phase !== 'finished' && <button className="icon-btn icon-btn--bare dock__pause" aria-label={paused ? 'Resume rendering' : 'Pause rendering'}
-          title={paused ? 'Resume (Space)' : 'Pause accumulation (Space)'} data-active={paused || undefined}
+        {phase !== 'finished' && <button className="icon-btn icon-btn--bare dock__pause" aria-label={paused ? t('Resume rendering') : t('Pause rendering')}
+          title={paused ? t('Resume (Space)') : t('Pause accumulation (Space)')} data-active={paused || undefined}
           onClick={() => useViewer.setState({ paused: !paused })}>
           {paused ? <Play size={14} /> : <Pause size={14} />}
         </button>}
@@ -86,39 +91,39 @@ export function StatusBar() {
       <span className="sep" />
       <div className="dock__settings">
         <Select
-          label="Max samples"
-          prefix="Samples"
+          label={t('Max samples')}
+          prefix={t('Samples')}
           value={String(maxSamples)}
           options={sampleOptions.map((v) => ({ value: String(v), label: String(v) }))}
           onChange={(v) => setSettings({ maxSamples: Number(v) })}
         />
-        <ResolutionSelect prefix="Res" />
+        <ResolutionSelect prefix={t('Res')} />
         <div className="dock__denoise">
           <label
             className="dock__toggle"
             data-selected={denoise || undefined}
-            title="Denoise (D)"
+            title={t('Denoise (D)')}
           >
             <input
               type="checkbox"
               checked={denoise}
               onChange={(e) => setSettings({ denoise: e.currentTarget.checked })}
             />
-            <span className="dock__label">Denoise</span>
+            <span className="dock__label">{t('Denoise')}</span>
           </label>
           {denoise && <DenoiserSelect />}
           {denoise && <label
             className="dock__toggle"
             data-selected={settings.denoiseWhileConverging || undefined}
-            title="Denoise while converging: previews and every few samples, not only the final image"
+            title={t('Denoise while converging: previews and every few samples, not only the final image')}
           >
             <input
               type="checkbox"
-              aria-label="Live denoise"
+              aria-label={t('Live denoise')}
               checked={settings.denoiseWhileConverging}
               onChange={(e) => setSettings({ denoiseWhileConverging: e.currentTarget.checked })}
             />
-            <span className="dock__label">Live</span>
+            <span className="dock__label">{t('Live')}</span>
           </label>}
         </div>
         <RenderSettingsPopover />
@@ -130,12 +135,13 @@ export function StatusBar() {
 function DenoiserSelect({ disabled = false }: { disabled?: boolean }) {
   const settings = useViewer((s) => s.settings);
   const webgl = useViewer((s) => s.backend.name === 'WebGL 2');
+  const t = useT();
   return <Select
-    label="Denoiser type"
+    label={t('Denoiser type')}
     disabled={disabled}
     value={webgl || settings.denoiseModel === 'jnlm' ? 'jnlm' : 'oidn'}
     options={[
-      { value: 'oidn', label: 'OIDN', disabled: webgl, hint: webgl ? 'Requires WebGPU' : undefined },
+      { value: 'oidn', label: 'OIDN', disabled: webgl, hint: webgl ? t('Requires WebGPU') : undefined },
       { value: 'jnlm', label: 'JNLM' }
     ]}
     onChange={(v) => setSettings({ denoiseModel: v === 'jnlm' ? 'jnlm' : settings.oidnModel })}
@@ -144,22 +150,23 @@ function DenoiserSelect({ disabled = false }: { disabled?: boolean }) {
 
 function RenderSettingsPopover() {
   const settings = useViewer((s) => s.settings);
+  const t = useT();
   return (
     <DialogTrigger>
-      <Button className="icon-btn dock__more" aria-label="Render settings"><SlidersHorizontal size={14} /></Button>
+      <Button className="icon-btn dock__more" aria-label={t('Render settings')}><SlidersHorizontal size={14} /></Button>
       <Popover className="popover dock-options" placement="top end" offset={8}>
-        <Dialog aria-label="Render settings">
+        <Dialog aria-label={t('Render settings')}>
           {({ close }) => <>
-            <Heading slot="title" className="dialog__title">Render settings
-              <button className="icon-btn icon-btn--bare xs" aria-label="Close render settings" onClick={close}><X size={12} /></button>
+            <Heading slot="title" className="dialog__title">{t('Render settings')}
+              <button className="icon-btn icon-btn--bare xs" aria-label={t('Close render settings')} onClick={close}><X size={12} /></button>
             </Heading>
-            <Switch label="Denoise" checked={settings.denoise} onChange={(v) => setSettings({ denoise: v })}>
-              <span className="field-label">Denoise</span>
+            <Switch label={t('Denoise')} checked={settings.denoise} onChange={(v) => setSettings({ denoise: v })}>
+              <span className="field-label">{t('Denoise')}</span>
             </Switch>
-            <Field label="Denoiser"><DenoiserSelect disabled={!settings.denoise} /></Field>
-            <Switch label="Live denoise" checked={settings.denoiseWhileConverging} disabled={!settings.denoise}
+            <Field label={t('Denoiser')}><DenoiserSelect disabled={!settings.denoise} /></Field>
+            <Switch label={t('Live denoise')} checked={settings.denoiseWhileConverging} disabled={!settings.denoise}
               onChange={(v) => setSettings({ denoiseWhileConverging: v })}>
-              <span className="field-label">Live denoise</span>
+              <span className="field-label">{t('Live denoise')}</span>
             </Switch>
           </>}
         </Dialog>

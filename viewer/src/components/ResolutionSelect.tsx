@@ -1,6 +1,7 @@
 import { RESOLUTION_HEIGHTS, setSettings, useViewer } from '../store';
 import { getEngine } from '../engine/ViewerEngine';
 import { Select } from './ui/controls';
+import { useT } from '../i18n';
 
 const SCALES = [0.25, 0.5, 0.75, 1];
 const heightLabel = (height: number) => height === 2160 ? '4K' : `${height}p`;
@@ -12,6 +13,7 @@ export function ResolutionSelect({ prefix }: { prefix?: string }) {
   const height = useViewer((s) => s.settings.resolutionHeight);
   // Rerenders with the stats, which change whenever the canvas is resized.
   useViewer((s) => s.stats.width);
+  const t = useT();
   const canvas = getEngine()?.engine.display.canvas;
   const size = (value: number) => canvas ? `${Math.round(canvas.width * value)}×${Math.round(canvas.height * value)}` : undefined;
   const scales = [...new Set([...SCALES, scale])].sort((a, b) => a - b);
@@ -19,14 +21,14 @@ export function ResolutionSelect({ prefix }: { prefix?: string }) {
   return (
     <>
     <Select
-      label="Output aspect ratio"
-      prefix="Aspect"
+      label={t('Output aspect ratio')}
+      prefix={t('Aspect')}
       value={String(aspect)}
-      options={[{ value: 'null', label: 'Viewport' }, ...[...new Set([1, 4/3, 16/9, ...(aspect ? [aspect] : [])])].map(value => ({ value: String(value), label: value.toFixed(3) }))]}
+      options={[{ value: 'null', label: t('Viewport') }, ...[...new Set([1, 4/3, 16/9, ...(aspect ? [aspect] : [])])].map(value => ({ value: String(value), label: value.toFixed(3) }))]}
       onChange={value => setSettings({ outputAspect: value === 'null' ? null : Number(value) })}
     />
     <Select
-      label="Render resolution"
+      label={t('Render resolution')}
       prefix={prefix}
       value={height === null ? String(scale) : `${height}p`}
       options={[

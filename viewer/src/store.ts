@@ -301,6 +301,8 @@ export interface ViewerState {
   paused: boolean;
   ui: {
     tab: InspectorTab; left: boolean; right: boolean; hidden: boolean; focusFrame: boolean;
+    /** Interface language of the viewer chrome. */
+    lang: 'zh' | 'en';
     /** Viewport debug overlay expanded. */
     debug: boolean;
     exportOpen: boolean; codeOpen: boolean; helpOpen: boolean; textureBrowser: boolean;
@@ -425,6 +427,7 @@ export const useViewer = create<ViewerState>(() => ({
     left: storedUi.left ?? true,
     right: storedUi.right ?? true,
     hidden: false,
+    lang: storedUi.lang === 'en' ? 'en' : 'zh',
     focusFrame: storedUi.focusFrame !== false,
     debug: storedUi.debug === true,
     exportOpen: false,
@@ -530,8 +533,8 @@ export function showToast(message: string, tone: ToastTone = 'info', actions?: N
 
 useViewer.subscribe((state, prev) => {
   if (state.ui !== prev.ui) {
-    const { tab, left, right, focusFrame, debug, examplesPinned } = state.ui;
-    writeStorage(UI_KEY, { tab, left, right, focusFrame, debug, examplesPinned });
+    const { tab, left, right, focusFrame, debug, examplesPinned, lang } = state.ui;
+    writeStorage(UI_KEY, { tab, left, right, focusFrame, debug, examplesPinned, lang });
   }
   if (state.settings !== prev.settings) {
     writeStorage(RENDER_KEY, Object.fromEntries(RENDER_FIELDS.map((key) => [key, state.settings[key]])));

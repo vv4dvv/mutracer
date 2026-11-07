@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Small MuTracer examples: procedural scenes, Three.js glTF conversion, skinned animation, instancing, OpenPBR layers and OIDN denoising." />
-    <title>MuTracer examples · WebGPU path tracing</title>
+    <meta id="meta-description" name="description" content="MuTracer 小示例：程序化场景、Three.js glTF 转换、骨骼动画、实例化、OpenPBR 分层与 OIDN 降噪。" />
+    <title>MuTracer 示例 · WebGPU 路径追踪</title>
     <link rel="canonical" href="https://mutracer.meimu-studio.com/examples/" />
     <style>
       body {
@@ -17,19 +17,113 @@
       }
       a { color: #8cb4ff; }
       li { margin: 8px 0; }
+      .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .page-header h1 { margin: 0.67em 0; }
+      #lang-toggle {
+        flex: none;
+        padding: 4px 10px;
+        font: inherit;
+        font-size: 13px;
+        color: #eee;
+        background: #222;
+        border: 1px solid #444;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      #lang-toggle:hover { background: #2c2c2c; border-color: #666; }
+      #lang-toggle:focus-visible { outline: 2px solid #8cb4ff; outline-offset: 2px; }
     </style>
   </head>
   <body>
-    <h1>MuTracer examples</h1>
+    <div class="page-header">
+      <h1 data-i18n="heading">MuTracer 示例</h1>
+      <button id="lang-toggle" type="button" title="Switch to English">EN</button>
+    </div>
     <ul>
-      <li><a href="./basic.html">Basic</a>: procedural geometry, OpenPBR materials, an area light and an HDR environment.</li>
-      <li><a href="./three.html">Three.js</a>: a Three.js scene with a glTF model, converted with <code>fromTHREEScene</code>.</li>
-      <li><a href="./animation.html">Animation</a>: a procedural skinned cylinder with bone animation and a morph target.</li>
-      <li><a href="./instancing.html">Instancing</a>: 100 shared cubes with a matrix edit notification.</li>
-      <li><a href="./caustics.html">Caustics</a>: a glass sphere under a spotlight; light tracing requires WebGPU.</li>
-      <li><a href="./advanced.html">Advanced</a>: OpenPBR layers, shadow catcher, OIDN denoising and offline PNG export.</li>
+      <li data-i18n="basic"><a href="./basic.html">基础</a>：程序化几何体、OpenPBR 材质、面光源与 HDR 环境。</li>
+      <li data-i18n="three"><a href="./three.html">Three.js</a>：用 <code>fromTHREEScene</code> 转换带 glTF 模型的 Three.js 场景。</li>
+      <li data-i18n="animation"><a href="./animation.html">动画</a>：带骨骼动画和变形目标的程序化蒙皮圆柱。</li>
+      <li data-i18n="instancing"><a href="./instancing.html">实例化</a>：100 个共享立方体，通过矩阵编辑通知更新。</li>
+      <li data-i18n="caustics"><a href="./caustics.html">焦散</a>：聚光灯下的玻璃球；光线追踪需要 WebGPU。</li>
+      <li data-i18n="advanced"><a href="./advanced.html">高级</a>：OpenPBR 分层、阴影捕捉器、OIDN 降噪与离线 PNG 导出。</li>
     </ul>
-    <p>MuTracer uses WebGPU when available and falls back to WebGL 2.</p>
-    <p>For an interactive viewer (drop a glTF or HDR, edit materials, export PNGs), open the <a href="../viewer/">viewer</a> (<code>npm run viewer</code> locally).</p>
+    <p data-i18n="backend">MuTracer 在可用时使用 WebGPU，否则回退到 WebGL 2。</p>
+    <p data-i18n="viewer">需要交互式查看器（拖入 glTF 或 HDR、编辑材质、导出 PNG）？打开 <a href="../viewer/">viewer</a>（本地运行 <code>npm run viewer</code>）。</p>
+    <script>
+      (() => {
+        const messages = {
+          zh: {
+            title: 'MuTracer 示例 · WebGPU 路径追踪',
+            description: 'MuTracer 小示例：程序化场景、Three.js glTF 转换、骨骼动画、实例化、OpenPBR 分层与 OIDN 降噪。',
+            toggle: 'EN',
+            toggleTitle: 'Switch to English',
+            heading: 'MuTracer 示例',
+            basic: '<a href="./basic.html">基础</a>：程序化几何体、OpenPBR 材质、面光源与 HDR 环境。',
+            three: '<a href="./three.html">Three.js</a>：用 <code>fromTHREEScene</code> 转换带 glTF 模型的 Three.js 场景。',
+            animation: '<a href="./animation.html">动画</a>：带骨骼动画和变形目标的程序化蒙皮圆柱。',
+            instancing: '<a href="./instancing.html">实例化</a>：100 个共享立方体，通过矩阵编辑通知更新。',
+            caustics: '<a href="./caustics.html">焦散</a>：聚光灯下的玻璃球；光线追踪需要 WebGPU。',
+            advanced: '<a href="./advanced.html">高级</a>：OpenPBR 分层、阴影捕捉器、OIDN 降噪与离线 PNG 导出。',
+            backend: 'MuTracer 在可用时使用 WebGPU，否则回退到 WebGL 2。',
+            viewer: '需要交互式查看器（拖入 glTF 或 HDR、编辑材质、导出 PNG）？打开 <a href="../viewer/">viewer</a>（本地运行 <code>npm run viewer</code>）。'
+          },
+          en: {
+            title: 'MuTracer examples · WebGPU path tracing',
+            description: 'Small MuTracer examples: procedural scenes, Three.js glTF conversion, skinned animation, instancing, OpenPBR layers and OIDN denoising.',
+            toggle: '中文',
+            toggleTitle: '切换到中文',
+            heading: 'MuTracer examples',
+            basic: '<a href="./basic.html">Basic</a>: procedural geometry, OpenPBR materials, an area light and an HDR environment.',
+            three: '<a href="./three.html">Three.js</a>: a Three.js scene with a glTF model, converted with <code>fromTHREEScene</code>.',
+            animation: '<a href="./animation.html">Animation</a>: a procedural skinned cylinder with bone animation and a morph target.',
+            instancing: '<a href="./instancing.html">Instancing</a>: 100 shared cubes with a matrix edit notification.',
+            caustics: '<a href="./caustics.html">Caustics</a>: a glass sphere under a spotlight; light tracing requires WebGPU.',
+            advanced: '<a href="./advanced.html">Advanced</a>: OpenPBR layers, shadow catcher, OIDN denoising and offline PNG export.',
+            backend: 'MuTracer uses WebGPU when available and falls back to WebGL 2.',
+            viewer: 'For an interactive viewer (drop a glTF or HDR, edit materials, export PNGs), open the <a href="../viewer/">viewer</a> (<code>npm run viewer</code> locally).'
+          }
+        };
+        const storageKey = 'mutracer-examples-lang';
+        const toggle = document.getElementById('lang-toggle');
+        const metaDescription = document.getElementById('meta-description');
+        const translated = document.querySelectorAll('[data-i18n]');
+
+        function apply(lang) {
+          const dict = messages[lang] || messages.zh;
+          document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+          document.title = dict.title;
+          metaDescription.setAttribute('content', dict.description);
+          translated.forEach((node) => {
+            const text = dict[node.dataset.i18n];
+            if (text !== undefined) node.innerHTML = text;
+          });
+          toggle.textContent = dict.toggle;
+          toggle.title = dict.toggleTitle;
+          toggle.setAttribute('aria-label', dict.toggleTitle);
+          try {
+            localStorage.setItem(storageKey, lang === 'en' ? 'en' : 'zh');
+          } catch (e) {
+            // Storage can be unavailable in private or sandboxed contexts.
+          }
+        }
+
+        let initial = 'zh';
+        try {
+          if (localStorage.getItem(storageKey) === 'en') initial = 'en';
+        } catch (e) {
+          // Keep the default language.
+        }
+        apply(initial);
+
+        toggle.addEventListener('click', () => {
+          apply(document.documentElement.lang === 'en' ? 'zh' : 'en');
+        });
+      })();
+    </script>
   </body>
 </html>

@@ -8,6 +8,7 @@ import {
 } from '../engine/polyHaven';
 import { Segmented, Switch } from './ui/controls';
 import { PolyHavenLogo } from './PolyHavenLogo';
+import { useT } from '../i18n';
 
 const PAGE = 48;
 const formatMB = (bytes: number) => (bytes / 1048576).toFixed(1);
@@ -43,6 +44,7 @@ export function TextureBrowser() {
   const [limit, setLimit] = useState(PAGE);
   const [, rerender] = useState(0);
   const materialId = material?.id;
+  const t = useT();
 
   useEffect(() => {
     if (textures) return;
@@ -92,39 +94,39 @@ export function TextureBrowser() {
   };
 
   return (
-    <section className="panel tex-browser" aria-label="Poly Haven textures">
+    <section className="panel tex-browser" aria-label={t('Poly Haven textures')}>
       <div className="insp-head">
-        <a className="badge" href="https://polyhaven.com" target="_blank" rel="noreferrer" title="Poly Haven" aria-label="Poly Haven website">
+        <a className="badge" href="https://polyhaven.com" target="_blank" rel="noreferrer" title="Poly Haven" aria-label={t('Poly Haven website')}>
           <PolyHavenLogo size={18} />
         </a>
         <div className="copy">
-          <strong>Poly Haven textures</strong>
-          <small>{material ? `Click to apply to ${material.name}` : 'Select a material to apply textures'}</small>
+          <strong>{t('Poly Haven textures')}</strong>
+          <small>{material ? t('Click to apply to {name}', { name: material.name }) : t('Select a material to apply textures')}</small>
         </div>
-        <button className="icon-btn icon-btn--bare sm" aria-label="Close textures" title="Close"
+        <button className="icon-btn icon-btn--bare sm" aria-label={t('Close textures')} title={t('Close')}
           onClick={() => setUi({ textureBrowser: false })}><X size={14} /></button>
       </div>
       <div className="tex-browser__filters">
         <label className="search">
           <Search size={13} />
-          <input placeholder="Search wood, brick, fabric…" value={query} onChange={(e) => setQuery(e.currentTarget.value)} />
-          {query && <button className="icon-btn icon-btn--bare xs" aria-label="Clear search" onClick={() => setQuery('')}><X size={12} /></button>}
+          <input placeholder={t('Search wood, brick, fabric…')} value={query} onChange={(e) => setQuery(e.currentTarget.value)} />
+          {query && <button className="icon-btn icon-btn--bare xs" aria-label={t('Clear search')} onClick={() => setQuery('')}><X size={12} /></button>}
         </label>
         <Segmented
-          label="Texture resolution"
+          label={t('Texture resolution')}
           value={resolution}
           options={TEXTURE_RESOLUTIONS.map((r) => ({ value: r.value, label: <span title={r.size}>{r.label}</span> }))}
           onChange={(v) => { lastResolution = v; setResolution(v); }}
         />
-        <Switch label="Download displacement map" checked={displacement && webgpu} disabled={!webgpu}
+        <Switch label={t('Download displacement map')} checked={displacement && webgpu} disabled={!webgpu}
           onChange={(v) => { lastDisplacement = v; setDisplacement(v); }}>
-          <span className="field-label">Download displacement map</span>
+          <span className="field-label">{t('Download displacement map')}</span>
         </Switch>
         {categories.length > 0 && (
-          <div className="ph-cats" role="radiogroup" aria-label="Category">
+          <div className="ph-cats" role="radiogroup" aria-label={t('Category')}>
             {[null, ...categories].map((c) => (
               <button key={c ?? 'all'} role="radio" aria-checked={category === c} data-on={category === c || undefined}
-                onClick={() => setCategory(c)}>{c ?? 'All'}</button>
+                onClick={() => setCategory(c)}>{c ?? t('All')}</button>
             ))}
           </div>
         )}
@@ -133,20 +135,20 @@ export function TextureBrowser() {
         const el = e.currentTarget;
         if (el.scrollTop + el.clientHeight > el.scrollHeight - 300 && limit < shown.length) setLimit((l) => l + PAGE);
       }}>
-        {error && <div className="ph-empty">Could not reach Poly Haven: {error}
-          {' '}<button className="hint__link" onClick={() => { setError(null); setTextures(null); }}>Retry</button></div>}
-        {!error && !textures && <div className="ph-empty">Loading the catalog…</div>}
-        {textures && shown.length === 0 && <div className="ph-empty">No matching textures</div>}
-        {shown.slice(0, limit).map((t) => {
-          const busy = loading?.id === t.id;
+        {error && <div className="ph-empty">{t('Could not reach Poly Haven: {error}', { error })}
+          {' '}<button className="hint__link" onClick={() => { setError(null); setTextures(null); }}>{t('Retry')}</button></div>}
+        {!error && !textures && <div className="ph-empty">{t('Loading the catalog…')}</div>}
+        {textures && shown.length === 0 && <div className="ph-empty">{t('No matching textures')}</div>}
+        {shown.slice(0, limit).map((texture) => {
+          const busy = loading?.id === texture.id;
           const fraction = busy && loading.total ? loading.loaded / loading.total : 0;
           return (
-            <button key={t.id} className="ph-card" title={t.name} disabled={!material}
-              data-busy={busy || undefined} data-on={applied === t.id || undefined} aria-pressed={applied === t.id}
-              onPointerEnter={() => void polyHavenMaps(t.id, resolution).catch(() => {})}
-              onClick={() => void apply(t)}>
-              <img src={polyHavenThumbnail(t.id)} alt="" loading="lazy" />
-              <span>{busy ? `${formatMB(loading.loaded)}${loading.total ? ` / ${formatMB(loading.total)}` : ''} MB` : t.name}</span>
+            <button key={texture.id} className="ph-card" title={texture.name} disabled={!material}
+              data-busy={busy || undefined} data-on={applied === texture.id || undefined} aria-pressed={applied === texture.id}
+              onPointerEnter={() => void polyHavenMaps(texture.id, resolution).catch(() => {})}
+              onClick={() => void apply(texture)}>
+              <img src={polyHavenThumbnail(texture.id)} alt="" loading="lazy" />
+              <span>{busy ? `${formatMB(loading.loaded)}${loading.total ? ` / ${formatMB(loading.total)}` : ''} MB` : texture.name}</span>
               {busy && <i className="ph-card__bar" style={{ width: `${Math.max(4, fraction * 100)}%` }} />}
             </button>
           );

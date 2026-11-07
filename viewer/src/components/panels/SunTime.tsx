@@ -1,5 +1,6 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { DEFAULT_SKY_TIME, SKY_TIME_RANGE, sunPosition } from '../../engine/sky';
+import { useT } from '../../i18n';
 
 const [MIN, MAX] = SKY_TIME_RANGE;
 const W = 280, H = 104, HORIZON = 76, TOP = 14;
@@ -39,6 +40,7 @@ export function SunTime({ value, onChange }: { value: number; onChange: (hours: 
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
+  const t = useT();
   const path = useMemo(() => {
     const points: string[] = [];
     for (let i = 0; i <= 64; i++) {
@@ -75,13 +77,13 @@ export function SunTime({ value, onChange }: { value: number; onChange: (hours: 
       className="sun-time"
       role="slider"
       tabIndex={0}
-      aria-label="Time of day"
+      aria-label={t('Time of day')}
       aria-valuemin={MIN}
       aria-valuemax={MAX}
       aria-valuenow={value}
       aria-valuetext={formatSkyTime(value)}
       data-dragging={dragging || undefined}
-      title="Drag to set the time of day; double-click to reset"
+      title={t('Drag to set the time of day; double-click to reset')}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
         e.currentTarget.setPointerCapture(e.pointerId);

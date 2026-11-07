@@ -10,6 +10,7 @@ import { StatusBar } from './StatusBar';
 import { OIDNLoadingStatus } from './OIDNLoadingStatus';
 import { CameraControls } from './ViewControls';
 import { Select } from './ui/controls';
+import { useT } from '../i18n';
 
 export function Viewport() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,6 +18,7 @@ export function Viewport() {
   const picking = useViewer((s) => s.pickingFocus);
   const hidden = useViewer((s) => s.ui.hidden);
   const inspectorOpen = useViewer((s) => s.ui.right);
+  const t = useT();
 
   useEffect(() => {
     const engine = new ViewerEngine(canvasRef.current!);
@@ -54,7 +56,7 @@ export function Viewport() {
         if (files.length) void getEngine()?.loadFiles(files);
       }}
     >
-      <canvas ref={canvasRef} className="viewport__canvas" aria-label="Path traced view. Drag to orbit, right-drag to pan, scroll to zoom, click to select." />
+      <canvas ref={canvasRef} className="viewport__canvas" aria-label={t('Path traced view. Drag to orbit, right-drag to pan, scroll to zoom, click to select.')} />
       {!hidden && (
         <>
           <SelectionBox />
@@ -67,10 +69,10 @@ export function Viewport() {
             <div className="viewport-footer">
               <StatusBar />
               <CameraControls />
-              <button className="btn panel-toggle" aria-label={inspectorOpen ? 'Hide inspector' : 'Show inspector'} aria-expanded={inspectorOpen}
+              <button className="btn panel-toggle" aria-label={inspectorOpen ? t('Hide inspector') : t('Show inspector')} aria-expanded={inspectorOpen}
                 onClick={() => setUi({ right: !inspectorOpen })}>
                 {inspectorOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                <span className="panel-toggle__label"><b>{inspectorOpen ? 'Hide' : 'Show'}</b><small>Panel</small></span>
+                <span className="panel-toggle__label"><b>{inspectorOpen ? t('Hide') : t('Show')}</b><small>{t('Panel')}</small></span>
               </button>
             </div>
           </div>
@@ -79,7 +81,7 @@ export function Viewport() {
       <LoadingCard />
       {dragging && (
         <div className="drop-layer">
-          <div><Upload size={28} />Drop to open<small>.glb · .gltf · .pbrt with its files · folder · .hdr{MATERIALX_IMPORT && ' · MaterialX .mtlx or .zip'}</small></div>
+          <div><Upload size={28} />{t('Drop to open')}<small>.glb · .gltf · .pbrt with its files · folder · .hdr{MATERIALX_IMPORT && t(' · MaterialX .mtlx or .zip')}</small></div>
         </div>
       )}
     </section>
@@ -98,6 +100,7 @@ function FocusFrame() {
   const drag = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
   const [hovered, setHovered] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const t = useT();
   useEffect(() => {
     if (!visible) {
       drag.current = null;
@@ -145,8 +148,8 @@ function FocusFrame() {
       <button
         type="button"
         className="focus-frame__handle"
-        aria-label="Move focus area"
-        title="Drag to move focus area. Arrow keys move it; Shift moves faster."
+        aria-label={t('Move focus area')}
+        title={t('Drag to move focus area. Arrow keys move it; Shift moves faster.')}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
           e.preventDefault();
@@ -190,32 +193,34 @@ function SelectionBox() {
 
 function Credit() {
   const model = useViewer((s) => s.model);
+  const t = useT();
   if (!model?.credit) return null;
   const preset = MODEL_PRESETS.find((p) => p.id === model.presetId);
   return (
     <div className="credit">
       {model.sourceUrl ? <a href={model.sourceUrl} target="_blank" rel="noreferrer">{model.credit}</a> : model.credit}
       {preset?.licenseUrl && <> · <a href={preset.licenseUrl} target="_blank" rel="noreferrer">{preset.license}</a></>}
-      {preset?.attributionUrl && <> · <a href={preset.attributionUrl} target="_blank" rel="noreferrer">Credits &amp; changes</a></>}
+      {preset?.attributionUrl && <> · <a href={preset.attributionUrl} target="_blank" rel="noreferrer">{t('Credits & changes')}</a></>}
     </div>
   );
 }
 
 function AnimationBar() {
   const anim = useViewer((s) => s.animation);
+  const t = useT();
   if (!anim) return null;
   const engine = getEngine();
   const progress = anim.duration ? anim.time / anim.duration : 0;
   return (
     <div className="float anim">
-      <button className="icon-btn play" aria-label={anim.playing ? 'Pause animation' : 'Play animation'} title="Play / pause (Space)"
+      <button className="icon-btn play" aria-label={anim.playing ? t('Pause animation') : t('Play animation')} title={t('Play / pause (Space)')}
         onClick={() => engine?.setAnimation({ playing: !anim.playing })}>
         {anim.playing ? <Pause size={15} /> : <Play size={15} />}
       </button>
       <input
         className="timeline"
         type="range"
-        aria-label="Animation time"
+        aria-label={t('Animation time')}
         min={0}
         max={anim.duration}
         step={0.001}
@@ -226,14 +231,14 @@ function AnimationBar() {
       <span className="time mono">{anim.time.toFixed(2)} / {anim.duration.toFixed(2)} s</span>
       <span className="sep" />
       {anim.clips.length > 1 && (
-        <Select label="Animation clip" value={String(anim.clip)} options={anim.clips.map((name, i) => ({ value: String(i), label: name }))}
+        <Select label={t('Animation clip')} value={String(anim.clip)} options={anim.clips.map((name, i) => ({ value: String(i), label: name }))}
           onChange={(v) => engine?.selectClip(Number(v))} />
       )}
-      <Select label="Playback speed" value={String(anim.speed)}
+      <Select label={t('Playback speed')} value={String(anim.speed)}
         options={['0.25', '0.5', '1', '2'].map((v) => ({ value: v, label: `${v}×` }))}
         onChange={(v) => engine?.setAnimation({ speed: Number(v) })} />
-      <button className="icon-btn icon-btn--bare" aria-label="Loop" aria-pressed={anim.loop} data-active={anim.loop || undefined}
-        title="Loop" onClick={() => engine?.setAnimation({ loop: !anim.loop })}><Loop size={14} /></button>
+      <button className="icon-btn icon-btn--bare" aria-label={t('Loop')} aria-pressed={anim.loop} data-active={anim.loop || undefined}
+        title={t('Loop')} onClick={() => engine?.setAnimation({ loop: !anim.loop })}><Loop size={14} /></button>
     </div>
   );
 }
@@ -247,18 +252,19 @@ const STAGES = [
 
 function LoadingCard() {
   const loading = useViewer((s) => s.loading);
+  const t = useT();
   if (!loading) return null;
   const current = STAGES.findIndex(([id]) => id === loading.stage);
   const fraction = loading.stage === 'download' && loading.total ? loading.loaded / loading.total : 0;
   const overall = (current + fraction) / STAGES.length;
   return (
     <div className="center-card" role="status" aria-live="polite">
-      <h3>Loading {loading.name}</h3>
+      <h3>{t('Loading {name}', { name: loading.name })}</h3>
       <div className="steps">
         {STAGES.map(([id, label], index) => (
           <div key={id} className="step" data-done={index < current || undefined} data-active={index === current || undefined}>
             <span className="dot">{index < current && <Check size={11} />}</span>
-            <b>{label}</b>
+            <b>{t(label)}</b>
             <span className="mono">
               {id === 'download' && loading.loaded > 0 ? `${(loading.loaded / 2 ** 20).toFixed(1)}${loading.total ? ` / ${(loading.total / 2 ** 20).toFixed(1)}` : ''} MB` : ''}
             </span>

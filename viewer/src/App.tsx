@@ -73,6 +73,12 @@ export function App() {
   const ui = useViewer((s) => s.ui);
   const mobile = useMobile();
   useShortcuts();
+  useEffect(() => {
+    document.documentElement.lang = ui.lang === 'en' ? 'en' : 'zh-CN';
+    document.title = ui.lang === 'en'
+      ? 'MuTracer Viewer · Path trace glTF models in the browser'
+      : 'MuTracer 查看器 · 在浏览器中路径追踪 glTF 模型';
+  }, [ui.lang]);
   const left = ui.left && !ui.hidden && !mobile;
   const right = ui.right && !ui.hidden && !mobile;
   const textures = right && ui.textureBrowser && ui.tab === 'material';

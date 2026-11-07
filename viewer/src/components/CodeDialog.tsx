@@ -4,6 +4,7 @@ import { Bot, Check, Code2, Copy, X } from 'lucide-react';
 import { setUi, showToast, useViewer } from '../store';
 import { getEngine } from '../engine/ViewerEngine';
 import { Scrub } from './ui/controls';
+import { useT } from '../i18n';
 
 // Enough JavaScript for the generated code: comments, strings, numbers,
 // keywords, capitalized names (classes, namespaces) and calls.
@@ -39,6 +40,7 @@ export function CodeDialog() {
   const open = useViewer((s) => s.ui.codeOpen);
   const [copied, setCopied] = useState<'code' | 'agent' | null>(null);
   const [fontSize, setFontSize] = useState(readFontSize);
+  const t = useT();
   const changeFontSize = (value: number) => {
     setFontSize(value);
     try {
@@ -59,7 +61,7 @@ export function CodeDialog() {
       await navigator.clipboard.writeText(kind === 'agent' ? getEngine()?.agentMarkdown() ?? code : code);
       setCopied(kind);
     } catch (error) {
-      showToast(`Could not copy: ${(error as Error).message}`, 'error');
+      showToast(t('Could not copy: {message}', { message: (error as Error).message }), 'error');
     }
   };
 
@@ -69,37 +71,37 @@ export function CodeDialog() {
   return (
     <ModalOverlay className="scrim" isOpen={open} onOpenChange={(v) => !v && close()} isDismissable>
       <Modal className="dialog dialog--code">
-        <Dialog aria-label="Code">
+        <Dialog aria-label={t('Code')}>
           <header className="code-head">
             <span className="code-head__icon"><Code2 size={16} /></span>
-            <Heading slot="title" className="dialog__title">Code</Heading>
-            <button className="icon-btn icon-btn--bare sm" aria-label="Close" onClick={close}><X size={14} /></button>
+            <Heading slot="title" className="dialog__title">{t('Code')}</Heading>
+            <button className="icon-btn icon-btn--bare sm" aria-label={t('Close')} onClick={close}><X size={14} /></button>
           </header>
           <div className="code-notes">
-            <p className="hint">Material edits and object visibility are not included.</p>
-            {placeholders && <p className="hint hint--warn">Replace {placeholders}.</p>}
+            <p className="hint">{t('Material edits and object visibility are not included.')}</p>
+            {placeholders && <p className="hint hint--warn">{t('Replace {placeholders}.', { placeholders })}</p>}
           </div>
           <div className="code-panel">
             <div className="code-panel__bar">
               <span className="code-panel__file"><i />scene.js</span>
               <div className="code-font-size">
-                <Scrub label="Size" value={fontSize} min={9} max={20} step={0.5} unit="px" onChange={changeFontSize} />
+                <Scrub label={t('Font size')} value={fontSize} min={9} max={20} step={0.5} unit="px" onChange={changeFontSize} />
               </div>
             </div>
             <div className="code-view" style={{ fontSize }}>
               <div className="code-gutter" aria-hidden="true">
                 {Array.from({ length: lineCount }, (_, i) => i + 1).join('\n')}
               </div>
-              <pre className="code-block" tabIndex={0} aria-label="Generated code"><code>{tokens}</code></pre>
+              <pre className="code-block" tabIndex={0} aria-label={t('Generated code')}><code>{tokens}</code></pre>
             </div>
           </div>
           <div className="actions">
             <button className="btn" onClick={() => copy('agent')}
-              title="Copy as Markdown with the model, viewer link and changed settings, for a coding agent">
-              {copied === 'agent' ? <Check size={15} /> : <Bot size={15} />}{copied === 'agent' ? 'Copied' : 'Copy for agent'}
+              title={t('Copy as Markdown with the model, viewer link and changed settings, for a coding agent')}>
+              {copied === 'agent' ? <Check size={15} /> : <Bot size={15} />}{copied === 'agent' ? t('Copied') : t('Copy for agent')}
             </button>
             <button className="btn btn--primary" onClick={() => copy('code')}>
-              {copied === 'code' ? <Check size={15} /> : <Copy size={15} />}{copied === 'code' ? 'Copied' : 'Copy'}
+              {copied === 'code' ? <Check size={15} /> : <Copy size={15} />}{copied === 'code' ? t('Copied') : t('Copy')}
             </button>
           </div>
         </Dialog>
