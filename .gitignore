@@ -19,3 +19,6 @@ native/host/target/
 
 .cache/
 native/toolchain/node_modules
+
+# Packaged viewer artifacts (build locally with scripts/viewer-standalone/pack.bat)
+mutracer-viewer-*.zip
