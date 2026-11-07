@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "module": "NodeNext",
+    "lib": ["ESNext", "DOM"],
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUnusedLocals": true,
+    "sourceMap": true,
+    "inlineSources": true,
+
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+
+    "removeComments": false,
+    "declaration": true,
+    "stripInternal": true,
+    "declarationMap": false,
+    "pretty": true,
+    "outDir": "lib",
+
+    "types": ["@webgpu/types"]
+  },
+  "include": ["src"]
+}

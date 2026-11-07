@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Small MuTracer examples: procedural scenes, Three.js glTF conversion, skinned animation, instancing, OpenPBR layers and OIDN denoising." />
+    <title>MuTracer examples · WebGPU path tracing</title>
+    <link rel="canonical" href="https://mutracer.meimu-studio.com/examples/" />
+    <style>
+      body {
+        margin: 0 auto;
+        max-width: 640px;
+        padding: 24px 16px;
+        font: 15px/1.5 system-ui, sans-serif;
+        background: #111;
+        color: #eee;
+      }
+      a { color: #8cb4ff; }
+      li { margin: 8px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>MuTracer examples</h1>
+    <ul>
+      <li><a href="./basic.html">Basic</a>: procedural geometry, OpenPBR materials, an area light and an HDR environment.</li>
+      <li><a href="./three.html">Three.js</a>: a Three.js scene with a glTF model, converted with <code>fromTHREEScene</code>.</li>
+      <li><a href="./animation.html">Animation</a>: a procedural skinned cylinder with bone animation and a morph target.</li>
+      <li><a href="./instancing.html">Instancing</a>: 100 shared cubes with a matrix edit notification.</li>
+      <li><a href="./caustics.html">Caustics</a>: a glass sphere under a spotlight; light tracing requires WebGPU.</li>
+      <li><a href="./advanced.html">Advanced</a>: OpenPBR layers, shadow catcher, OIDN denoising and offline PNG export.</li>
+    </ul>
+    <p>MuTracer uses WebGPU when available and falls back to WebGL 2.</p>
+    <p>For an interactive viewer (drop a glTF or HDR, edit materials, export PNGs), open the <a href="../viewer/">viewer</a> (<code>npm run viewer</code> locally).</p>
+  </body>
+</html>

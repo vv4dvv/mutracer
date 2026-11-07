@@ -1,0 +1,156 @@
+{
+  "name": "@meimu/mutracer",
+  "version": "0.3.1",
+  "description": "MuTracer: a physically based WebGPU path tracer with WebGL 2 fallback, OpenPBR materials, TinyBVH and OIDN denoising.",
+  "keywords": [
+    "path tracing",
+    "webgpu",
+    "webgl",
+    "raytracing",
+    "pbr",
+    "openpbr",
+    "oidn",
+    "three.js",
+    "renderer"
+  ],
+  "homepage": "https://mutracer.meimu-studio.com",
+  "bugs": {
+    "url": "https://github.com/pissang/mutracer/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pissang/mutracer.git"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Yi Shen",
+  "type": "module",
+  "main": "lib/main.js",
+  "types": "lib/main.d.ts",
+  "unpkg": "dist/mutracer.umd.js",
+  "jsdelivr": "dist/mutracer.umd.js",
+  "exports": {
+    ".": {
+      "types": "./lib/main.d.ts",
+      "import": "./lib/main.js",
+      "default": "./lib/main.js"
+    },
+    "./oidn": {
+      "types": "./lib/oidn.d.ts",
+      "import": "./lib/oidn.js",
+      "default": "./lib/oidn.js"
+    },
+    "./oidn/weights/*": "./oidn/weights/*",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "lib",
+    "dist",
+    "oidn/weights/rt_hdr_alb_nrm.tza",
+    "oidn/weights/rt_hdr_alb_nrm_small.tza",
+    "oidn/weights/LICENSE.txt",
+    "oidn/weights/README.md",
+    "LICENSE",
+    "LICENSES",
+    "THIRD_PARTY_NOTICES.md",
+    "README.md",
+    "CHANGELOG.md",
+    "docs",
+    "llms.txt"
+  ],
+  "scripts": {
+    "native:modules": "npm run build:lib && node native/validation/module-check.mjs",
+    "native:browser-reference": "node native/validation/reference-server.mjs",
+    "native:check": "node native/validation/compiler/check.mjs",
+    "dev": "vite",
+    "build": "npm run typecheck && vite build && node scripts/check-research-artifacts.mjs dist",
+    "typecheck": "node scripts/generate-aov-reflectance-samples.mjs --check && node native/scripts/generate-layout-schema.mjs --check && node native/scripts/generate-display.mjs --check && node native/scripts/generate-sky.mjs --check && node native/scripts/generate-viewer-spheres.mjs --check && npm run check:material-comparison && tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:related": "vitest related --run --passWithNoTests=false",
+    "build:tinybvh": "./scripts/build-tinybvh.sh",
+    "fetch:tinybvh": "node scripts/fetch-tinybvh.mjs",
+    "build:tinybvh:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-tinybvh.ps1",
+    "typecheck:examples": "tsc --noEmit -p tsconfig.examples.json",
+    "watch": "vite build -w",
+    "preview": "vite preview",
+    "prepare": "npm run build:lib",
+    "prepublishOnly": "npm run build && npm run build:lib",
+    "build:lib": "npm run check:material-comparison && node scripts/build-lib.mjs",
+    "watch:lib": "tsc --watch",
+    "viewer": "vite --config viewer/vite.config.ts",
+    "build:viewer": "vite build --config viewer/vite.config.ts && node scripts/check-research-artifacts.mjs dist-viewer",
+    "typecheck:viewer": "tsc --noEmit -p viewer/tsconfig.json",
+    "site": "vite --config site/vite.config.ts",
+    "build:site": "node scripts/build-site.mjs",
+    "typecheck:site": "tsc --noEmit -p site/tsconfig.json",
+    "deploy": "wrangler deploy",
+    "deploy:dev": "wrangler deploy --env dev",
+    "pack:oidn-weights": "node scripts/pack-oidn-weights.mjs",
+    "check:lib-esm": "node scripts/check-lib-esm.mjs",
+    "test:viewer": "vitest run --config viewer/vitest.config.ts",
+    "test:viewer:related": "vitest related --run --config viewer/vitest.config.ts --passWithNoTests=false",
+    "generate:material-comparison": "node scripts/generate-material-comparison.mjs",
+    "check:material-comparison": "node scripts/generate-material-comparison.mjs --check",
+    "native:modules:verify": "node native/validation/module-verify.mjs",
+    "native:storage:verify": "node native/validation/storage-verify.mjs",
+    "native:camera": "node native/validation/camera-render.mjs",
+    "native:jobs": "node native/validation/job-render.mjs",
+    "native:context": "node native/validation/context-render.mjs",
+    "native:scene": "node native/validation/scene-render.mjs",
+    "native:scene:static": "node native/validation/scene-render.mjs --static",
+    "native:scene:verify": "node native/validation/scene-verify.mjs",
+    "native:viewer": "node native/scripts/viewer-build.mjs",
+    "native:viewer:dev": "node native/scripts/viewer-dev.mjs",
+    "native:viewer:build": "node native/scripts/viewer-build.mjs --build-only",
+    "native:viewer:package": "node native/scripts/viewer-package.mjs",
+    "native:sdk:package": "node native/scripts/sdk-package.mjs",
+    "native:settings": "node native/validation/settings-render.mjs",
+    "native:engine": "node native/validation/engine-render.mjs",
+    "native:ci": "node native/scripts/ci.mjs",
+    "native:ci:gpu": "node native/scripts/ci.mjs --gpu",
+    "native:ci:hosts": "node native/scripts/ci.mjs --gpu --hosts",
+    "test:parity": "node scripts/test-parity.mjs",
+    "pbrt:inspect": "node scripts/pbrt-inspect.mjs",
+    "pbrt:compare": "node scripts/pbrt-compare.mjs"
+  },
+  "dependencies": {
+    "@webgpu/types": "^0.1.40",
+    "oidn-webgpu": "^0.6.0"
+  },
+  "peerDependencies": {
+    "@types/three": ">=0.150.0",
+    "three": ">=0.150.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/three": {
+      "optional": true
+    },
+    "three": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@types/three": "^0.185.4",
+    "@vitejs/plugin-react": "^4.7.0",
+    "fflate": "^0.8.3",
+    "gl-matrix": "^3.4.4",
+    "lucide-react": "^1.54.0",
+    "react": "^18.3.1",
+    "react-aria-components": "^1.22.0",
+    "react-dom": "^18.3.1",
+    "three": "^0.185.1",
+    "typescript": "^5.8.2",
+    "vite": "^4.1.2",
+    "vitest": "^1.6.1",
+    "webgpu-utils": "^1.11.0",
+    "wrangler": "^4.54.0",
+    "zustand": "^5.0.15"
+  }
+}

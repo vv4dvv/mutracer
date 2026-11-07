@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="MuTracer Three.js example: a glTF model loaded with GLTFLoader and path traced through THREESync." />
+    <title>MuTracer · Three.js</title>
+    <link rel="stylesheet" href="./shared/style.css" />
+  </head>
+  <body>
+    <canvas id="main"></canvas>
+    <div class="panel">
+      <span id="status"></span>
+      <label><input id="rotate" type="checkbox" /> Rotate pieces</label>
+      <label>Board roughness <input id="roughness" type="range" min="0" max="1" step="0.01" value="0.35" /></label>
+    </div>
+    <script type="module" src="./three.ts"></script>
+  </body>
+</html>

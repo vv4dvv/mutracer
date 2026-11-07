@@ -1,0 +1,18 @@
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/viewer/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/examples/bundle/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/oidn/weights/*
+  Content-Type: application/octet-stream
+
+# Keep the dev deployment and workers.dev previews out of search results.
+https://mutracer-dev.meimu-studio.com/*
+  X-Robots-Tag: noindex
+
+https://:subdomain.workers.dev/*
+  X-Robots-Tag: noindex

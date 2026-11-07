@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "mutracer",
+  "compatibility_date": "2026-10-09",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "mutracer.meimu-studio.com", "custom_domain": true }
+  ],
+  "build": {
+    "command": "npm run typecheck:site && npm run typecheck:viewer && npm run typecheck:examples && npm run build:site"
+  },
+  "assets": {
+    "directory": "./dist-site",
+    "not_found_handling": "none"
+  },
+  "env": {
+    "dev": {
+      "name": "mutracer-dev",
+      "routes": [
+        { "pattern": "mutracer-dev.meimu-studio.com", "custom_domain": true }
+      ]
+    }
+  }
+}

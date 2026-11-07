@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="MuTracer is an open-source, physically based WebGPU path tracer for the browser with a WebGL 2 fallback, OpenPBR materials, Three.js sync and OIDN denoising. Drop a glTF model to render it." />
+    <title>MuTracer · WebGPU path tracer for the browser</title>
+    <link rel="canonical" href="https://mutracer.meimu-studio.com/" />
+    <link rel="icon" href="./mutracer-icon.png" type="image/png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MuTracer" />
+    <meta property="og:title" content="MuTracer · WebGPU path tracer for the browser" />
+    <meta property="og:description" content="Physically based path tracing in the browser: WebGPU with a WebGL 2 fallback, OpenPBR materials, Three.js sync and OIDN denoising." />
+    <meta property="og:url" content="https://mutracer.meimu-studio.com/" />
+    <meta property="og:image" content="https://mutracer.meimu-studio.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="675" />
+    <meta property="og:image:alt" content="Kroken interior scene path traced with MuTracer" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareSourceCode",
+        "name": "MuTracer",
+        "description": "A physically based WebGPU path tracer for the browser with a WebGL 2 fallback, OpenPBR materials, TinyBVH acceleration and Intel Open Image Denoise.",
+        "url": "https://mutracer.meimu-studio.com/",
+        "codeRepository": "https://github.com/pissang/mutracer",
+        "programmingLanguage": ["TypeScript", "WGSL", "GLSL"],
+        "runtimePlatform": "Web browser (WebGPU, WebGL 2)",
+        "license": "https://opensource.org/licenses/MIT",
+        "author": { "@type": "Person", "name": "Yi Shen" },
+        "image": "https://mutracer.meimu-studio.com/og-image.jpg"
+      }
+    </script>
+  </head>
+  <body>
+    <header class="banner">
+      <nav class="nav">
+        <a class="brand" href="./">
+          <img class="brand__mark" src="./src/assets/mutracer-logo.png" alt="" width="30" height="30" />
+          <strong>MuTracer</strong>
+        </a>
+        <div class="nav__links">
+          <a href="./viewer/">Viewer</a>
+          <a href="https://github.com/pissang/mutracer#readme" target="_blank" rel="noopener noreferrer">Docs</a>
+          <a href="https://github.com/pissang/mutracer" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+      </nav>
+      <div class="hero">
+        <h1>Path tracing in the browser</h1>
+        <p>
+          A physically based WebGPU path tracer with a WebGL 2 fallback, OpenPBR materials,
+          TinyBVH acceleration and Intel Open Image Denoise.
+        </p>
+        <div class="install">
+          <code><span aria-hidden="true">$</span> <span id="install-command">npm install @meimu/mutracer</span></code>
+          <button class="install__copy" id="copy-install" type="button" aria-label="Copy install command" title="Copy install command">
+            <svg class="install__copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+            </svg>
+            <svg class="install__check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m5 12 4 4L19 6" />
+            </svg>
+          </button>
+          <span class="install__feedback" id="copy-install-status" role="status"></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="drop" id="drop" aria-labelledby="drop-title">
+        <svg class="drop__icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v12" /><path d="m7 8 5-5 5 5" /><path d="M5 15v3a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-3" />
+        </svg>
+        <h2 id="drop-title">Drop a model to render it</h2>
+        <p class="drop__formats">.glb · .gltf with its .bin and textures · a folder · .hdr environment</p>
+        <div class="drop__actions">
+          <label class="btn btn--primary">
+            Choose files
+            <input id="pick-files" type="file" multiple accept=".glb,.gltf,.bin,.hdr,.png,.jpg,.jpeg,.webp,.ktx2" hidden />
+          </label>
+          <label class="btn">
+            Choose folder
+            <input id="pick-folder" type="file" webkitdirectory hidden />
+          </label>
+        </div>
+        <p class="drop__note">Files are read locally and never uploaded.</p>
+        <p class="drop__error" id="drop-error" role="alert" hidden></p>
+        <small class="drop__credit">
+          <a href="https://github.com/mmp/pbrt-v4-scenes#kroken" target="_blank" rel="noopener noreferrer">Kroken by Angelo Ferretti</a>
+          · <a href="https://creativecommons.org/licenses/by-nd/2.0/" target="_blank" rel="noopener noreferrer">CC BY-ND 2.0</a>
+        </small>
+      </section>
+
+      <section class="examples" aria-label="Examples">
+        <div class="collection-tabs" role="tablist" aria-label="Example collections">
+          <button id="collection-tab" type="button" role="tab" aria-selected="true" aria-controls="collection-panel">MuTracer Collection</button>
+          <span class="collection-tabs__research" role="presentation">
+            <button id="research-tab" type="button" role="tab" aria-selected="false" aria-controls="research-panel" tabindex="-1">glTF Research Scenes</button>
+            <a class="collection-tabs__source" href="https://github.com/ErfanMo77/gltf-research-scenes" target="_blank" rel="noopener noreferrer" aria-label="glTF Research Scenes source (opens in a new tab)" title="Open glTF Research Scenes source in a new tab">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 3h6v6M10 14 21 3M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
+              </svg>
+            </a>
+          </span>
+        </div>
+        <div id="collection-panel" role="tabpanel" aria-labelledby="collection-tab" tabindex="0">
+          <ul class="cards" id="cards"></ul>
+        </div>
+        <div id="research-panel" role="tabpanel" aria-labelledby="research-tab" tabindex="0" hidden>
+          <ul class="cards cards--research" id="research-cards"></ul>
+        </div>
+      </section>
+
+      <section class="features" aria-labelledby="features-title">
+        <h2 id="features-title">Features</h2>
+        <ul class="features__grid">
+          <li class="feature">
+            <svg class="feature__icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="4" y="4" width="16" height="16" rx="2" /><rect x="9" y="9" width="6" height="6" /><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3" />
+            </svg>
+            <h3>WebGPU first, WebGL 2 as fallback</h3>
+            <p>Unidirectional path tracing with next-event estimation and MIS over rect, sphere, IES spot, directional and HDR environment lights. Without WebGPU it falls back to WebGL 2.</p>
+          </li>
+          <li class="feature">
+            <svg class="feature__icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 0 0 18" fill="currentColor" fill-opacity="0.25" /><path d="M7.5 8.5a5 5 0 0 1 4-2" />
+            </svg>
+            <h3>OpenPBR 1.1 surface</h3>
+            <p>F82 metals, anisotropic GGX specular and coat, fuzz, thin-film interference, dispersive transmission with volume scattering, subsurface scattering and ray-marched displacement.</p>
+          </li>
+          <li class="feature">
+            <svg class="feature__icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
+            </svg>
+            <h3>Interactive with millions of triangles</h3>
+            <p>Two-level BVH with binned-SAH BLASes built in parallel Workers; moving instances only refits the TLAS. The <a href="./viewer/#model=bugatti-chiron">4.6 M-triangle Bugatti</a>: 0.5 s build, 5.3 full-HD spp/s on an M4 Max.</p>
+          </li>
+          <li class="feature">
+            <svg class="feature__icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m12 3 1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />
+            </svg>
+            <h3>Low-noise sampling and denoising</h3>
+            <p>Owen-scrambled Sobol or blue-noise ZSobol sequences. Albedo- and normal-guided denoising with Intel OIDN (WebGPU) or joint non-local means, progressively or on convergence.</p>
+          </li>
+          <li class="feature">
+            <svg class="feature__icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2 3 7v10l9 5 9-5V7z" /><path d="m3 7 9 5 9-5M12 12v10" />
+            </svg>
+            <h3>Incremental Three.js sync</h3>
+            <p><code>THREESync</code> converts standard and physical materials, lights, instancing, skinning and morph targets, and picks up transform, material and light edits on every update, without reconverting the scene.</p>
+          </li>
+          <li class="feature">
+            <svg class="feature__icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" /><circle cx="12" cy="13" r="4" />
+            </svg>
+            <h3>Offline-quality output</h3>
+            <p>Deterministic <code>converge()</code> with variance-driven adaptive sampling (WebGPU), AgX and ACES tone mapping, bloom, thin-lens depth of field and shadow catchers.</p>
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>MuTracer · MIT License · © Yi Shen</span>
+      <span class="footer__links">
+        <a href="./examples/">Examples</a>
+        <a href="https://github.com/pissang/mutracer" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://www.npmjs.com/package/@meimu/mutracer" target="_blank" rel="noopener noreferrer">npm</a>
+        <a href="https://github.com/pissang/mutracer-assets" target="_blank" rel="noopener noreferrer">Model credits</a>
+      </span>
+    </footer>
+
+    <div class="drag-veil" id="veil" hidden></div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

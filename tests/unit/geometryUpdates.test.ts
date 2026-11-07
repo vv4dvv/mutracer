@@ -1,0 +1,123 @@
+import { prepareStats } from '../helpers/prepareStats';
+import { setGeometryBvh, getGeometryBvh } from '../../src/renderer/geometryBvh.js';
+import { expect, it } from 'vitest';
+import Texture from '../../src/scene/Texture';
+import Mesh from '../../src/scene/Mesh';
+import OpenPBRMaterial from '../../src/scene/OpenPBRMaterial';
+import { createCubeGeometry } from '../../src/util/commonGeometry';
+import { updateMeshInstances } from '../../src/renderer/prepareMeshBVH';
+import { canUpdateGeometries, packVertexAttributes, updatePreparedGeometries } from '../../src/renderer/geometryUpdates';
+import Geometry, { Attribute } from '../../src/scene/Geometry';
+import { refitBLAS, DYNAMIC_BLAS_REBUILD_RATIO } from '../../src/renderer/bvhAccel';
+import Engine from '../../src/Engine';
+
+it('packs partial vertex uploads while preserving padding and excluded attributes', () => {
+  const g = new Geometry({
+    position: new Attribute(new Float32Array([1, 2, 3, 4, 5, 6]), 3),
+    normal: new Attribute(new Float32Array([0, 1, 0, 0, 0, 1]), 3),
+    uv: new Attribute(new Float32Array([.25, .5, .75, 1]), 2),
+    color: new Attribute(new Float32Array([1, 0, 0, 0, 1, 0]), 3),
+    tangent: new Attribute(new Float32Array([1, 0, 0, -1, 0, 1, 0, 1]), 4),
+    materialIndex: new Attribute(new Int32Array([-3, 123456]), 1)
+  });
+  const stride = 24, offsets = [0, 4, 8, 10, 12, 16, 20];
+  for (const deformationOnly of [false, true]) for (const includeMaterialIndex of [false, true]) {
+    const output = new Float32Array(stride * 2).fill(-99);
+    packVertexAttributes(g, output, stride, offsets, 1, 1, includeMaterialIndex, deformationOnly);
+    expect(Array.from(output.subarray(0, stride))).toEqual(Array(stride).fill(-99));
+    const expected = new Float32Array(stride).fill(-99);
+    expected.set([4, 5, 6], 0); expected.set([0, 0, 1], 4);
+    expected.set([0, 1, 0, 1], 16);
+    if (!deformationOnly) { expected.set([.75, 1], 8); expected.set([0, 1, 0], 12); }
+    if (includeMaterialIndex) expected[20] = 123456;
+    expect(output.subarray(stride)).toEqual(expected);
+  }
+});
+
+it('uses builtin BVH2 for dynamic geometry, even with an incompatible precomputed layout', async () => {
+  const g = createCubeGeometry(); g.dynamic = true;
+  setGeometryBvh(g, {buffer:new ArrayBuffer(64),maxDepth:1,layout:'bvh4',builder:'tinybvh'});
+  const mesh = new Mesh(g, new OpenPBRMaterial()); updateMeshInstances([mesh]);
+  expect(getGeometryBvh(g)!.layout).toBe('bvh2'); expect(getGeometryBvh(g)!.builder).toBe('builtin');
+  const renderer = new Engine({canvas: {width: 1, height: 1} as HTMLCanvasElement});
+  renderer.bvhBuilder = 'tinybvh'; renderer.bvhLayout = 'cwbvh';
+  renderer.bvhSpatialSplits = true;
+  await prepareStats(renderer, [mesh]);
+  updateMeshInstances([mesh]);
+  expect(getGeometryBvh(g)!.layout).toBe('bvh2'); expect(getGeometryBvh(g)!.builder).toBe('builtin');
+});
+it('rebuilds dynamic BLASes after total node area exceeds the construction baseline', () => {
+  const g = createCubeGeometry(); g.dynamic = true;
+  const prepared = updateMeshInstances([new Mesh(g, new OpenPBRMaterial())]);
+  const old = getGeometryBvh(g)!, baseline = old.buildSurfaceArea!;
+  for (let i = 0; i < g.position.array.length; i++) g.position.array[i] *= .99;
+  expect(refitBLAS(old, g)).toBe(true); expect(old.buildSurfaceArea).toBe(baseline);
+  for (let i = 0; i < g.position.array.length; i++) g.position.array[i] *= Math.sqrt(DYNAMIC_BLAS_REBUILD_RATIO) + .1;
+  g.markUpdated(); const update = updatePreparedGeometries(prepared, new Set([g]));
+  expect(getGeometryBvh(g)).not.toBe(old); expect(update.blases).toHaveLength(1);
+  expect(getGeometryBvh(g)!.buildSurfaceArea).toBeGreaterThan(baseline * DYNAMIC_BLAS_REBUILD_RATIO);
+});
+it('updates shared geometry regions and every instance bound without merging untouched geometry', () => {
+  const g = createCubeGeometry(), other = createCubeGeometry(), m = new OpenPBRMaterial();
+  const a = new Mesh(g,m), b = new Mesh(g,m), c = new Mesh(other,m); b.transform[12] = 5;
+  const prepared = updateMeshInstances([a,b,c]);
+  const merged = prepared.geometry, old = merged.position.array.slice();
+  g.position.array[0] += .1; g.normal.array[0] = .25; g.uv!.array[0] = .3; g.markUpdated();
+  expect(canUpdateGeometries(prepared,[g])).toBe(true);
+  const update = updatePreparedGeometries(prepared,new Set([g]));
+  expect(prepared.geometry).toBe(merged); expect(update.vertices).toHaveLength(1); expect(update.meshes).toEqual(new Set([a,b]));
+  expect(merged.position.array[0]).toBe(g.position.array[0]); expect(merged.normal.array[0]).toBe(.25);
+  expect(merged.position.array.slice(g.position.array.length)).toEqual(old.slice(g.position.array.length));
+  expect(prepared.instanceBindings[0].bvhBounds).toEqual(prepared.instanceBindings[1].bvhBounds);
+  expect(prepared.instanceBindings[0].bvhBounds[1][0]).toBe(g.position.array[0]);
+});
+it('rebuilds an edited index stream and detects BLAS relocation without remerging attributes', () => {
+  const g = createCubeGeometry(), mesh = new Mesh(g,new OpenPBRMaterial());
+  const prepared = updateMeshInstances([mesh]), old = getGeometryBvh(g);
+  const merged = prepared.geometry;
+  g.indices.array.fill(0); g.markUpdated();
+  const update = updatePreparedGeometries(prepared,new Set([g]));
+  expect(getGeometryBvh(g)).not.toBe(old); expect(update.resized).toBe(true); expect(update.relocated).toBe(true);
+  expect(prepared.geometry).toBe(merged); expect(merged.indices.array.every(i => i === 0)).toBe(true);
+});
+it('requires full preparation when displacement is added', () => {
+  const g = createCubeGeometry(), mesh = new Mesh(g,new OpenPBRMaterial());
+  const prepared = updateMeshInstances([mesh]);
+  mesh.materials[0].displacementMap = new Texture({data: new Uint8Array(64), width: 4, height: 4});
+  expect(canUpdateGeometries(prepared,[g])).toBe(false);
+});
+
+it('distinguishes vertex edits from index edits and retains material-index packing', () => {
+  const g = createCubeGeometry(), prepared = updateMeshInstances([new Mesh(g, new OpenPBRMaterial())]);
+  const previous = getGeometryBvh(g), indices = prepared.geometry.indices.array.slice();
+  prepared.geometry.materialIndex!.array.fill(123);
+  g.position.array[0] += .01;
+  expect(g.markVerticesUpdated()).toBe(g);
+  expect(g.version).toBe(1); expect(g.topologyVersion).toBe(0);
+  const update = updatePreparedGeometries(prepared, new Set([g]));
+  expect(getGeometryBvh(g)).toBe(previous); expect(update.vertices[0].topologyChanged).toBe(false);
+  expect(prepared.geometry.indices.array).toEqual(indices);
+  expect(prepared.geometry.materialIndex!.array.every(v => v === 123)).toBe(true);
+  g.indices.array.fill(0); expect(g.markUpdated()).toBe(g);
+  expect(g.version).toBe(2); expect(g.topologyVersion).toBe(1);
+  expect(updatePreparedGeometries(prepared, new Set([g])).vertices[0].topologyChanged).toBe(true);
+  expect(prepared.geometry.materialIndex!.array.every(v => v === 0)).toBe(true);
+  expect(updatePreparedGeometries(prepared, new Set([g])).vertices[0].topologyChanged).toBe(false);
+});
+it('detects replacing an index array even when vertex-only notification was used', () => {
+  const g = createCubeGeometry(), prepared = updateMeshInstances([new Mesh(g, new OpenPBRMaterial())]);
+  g.indices.array = g.indices.array.slice(); g.markVerticesUpdated();
+  expect(updatePreparedGeometries(prepared, new Set([g])).vertices[0].topologyChanged).toBe(true);
+});
+
+it('preserves static vertex attributes during deformation and accepts subsequent UV edits', async () => {
+  const {markDeformedGeometry} = await import('../../src/scene/geometryChanges');
+  const g = createCubeGeometry(), prepared = updateMeshInstances([new Mesh(g, new OpenPBRMaterial())]);
+  const uv = prepared.geometry.uv!.array.slice();
+  g.position.array[0] += .01; markDeformedGeometry(g);
+  expect(updatePreparedGeometries(prepared, new Set([g])).vertices[0].deformationOnly).toBe(true);
+  expect(prepared.geometry.uv!.array).toEqual(uv);
+  g.uv!.array[0] = .75; g.markVerticesUpdated();
+  expect(updatePreparedGeometries(prepared, new Set([g])).vertices[0].deformationOnly).toBe(false);
+  expect(prepared.geometry.uv!.array[0]).toBe(.75);
+});

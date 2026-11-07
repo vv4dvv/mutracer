@@ -1,0 +1,118 @@
+/** Small renderer-owned caches. Keys include exact source and GPU object identity;
+ * resources/bind groups are deliberately never retained here. */
+export class WGPUShaderCache {
+  private modules = new Map<string, GPUShaderModule>();
+  private moduleIds = new Map<string, number>();
+  private bindGroupLayouts = new Map<string, GPUBindGroupLayout>();
+  private layouts = new Map<string, GPUPipelineLayout>();
+  private pipelines = new Map<string, Promise<GPUComputePipeline>>();
+  private renderPipelines = new Map<string, GPURenderPipeline>();
+  private computePipelines = new Map<string, GPUComputePipeline>();
+  private ids = new WeakMap<object, number>();
+  private nextId = 0;
+
+  constructor(private device: GPUDevice) {}
+
+  private id(value: object) {
+    let id = this.ids.get(value);
+    if (id === undefined) {
+      id = ++this.nextId;
+      this.ids.set(value, id);
+    }
+    return id;
+  }
+
+  private remember<T>(cache: Map<string, T>, key: string, value: T, limit: number) {
+    cache.delete(key);
+    cache.set(key, value);
+    if (cache.size > limit) cache.delete(cache.keys().next().value!);
+    return value;
+  }
+
+  createShaderModule(descriptor: Pick<GPUShaderModuleDescriptor, 'code' | 'label'>) {
+    const key = descriptor.code;
+    const module = this.remember(this.modules, key,
+      this.modules.get(key) ?? this.device.createShaderModule(descriptor), 8);
+    // Pipeline retention is longer than module retention. Give exact source the
+    // same identity after module eviction, so a feature toggle can still find
+    // its compiled pipeline. Other GPU objects keep their object identities.
+    const id = this.remember(this.moduleIds, key, this.moduleIds.get(key) ?? this.id(module), 128);
+    this.ids.set(module, id);
+    return module;
+  }
+
+  createBindGroupLayout(descriptor: GPUBindGroupLayoutDescriptor) {
+    const entries = Array.from(descriptor.entries);
+    const key = JSON.stringify(entries);
+    return this.remember(this.bindGroupLayouts, key,
+      this.bindGroupLayouts.get(key) ??
+        this.device.createBindGroupLayout({ ...descriptor, entries }), 32);
+  }
+
+  createPipelineLayout(descriptor: GPUPipelineLayoutDescriptor) {
+    const bindGroupLayouts = Array.from(descriptor.bindGroupLayouts);
+    const { bindGroupLayouts: _groups, label: _label, ...options } = descriptor;
+    const key = JSON.stringify([options,
+      bindGroupLayouts.map((layout) => layout == null ? null : this.id(layout))]);
+    return this.remember(this.layouts, key,
+      this.layouts.get(key) ??
+        this.device.createPipelineLayout({ ...descriptor, bindGroupLayouts }), 16);
+  }
+
+  createComputePipelineAsync(descriptor: GPUComputePipelineDescriptor) {
+    const { compute, layout } = descriptor;
+    const key = JSON.stringify([
+      this.id(compute.module),
+      layout === 'auto' ? 'auto' : this.id(layout),
+      compute.entryPoint,
+      Object.entries(compute.constants ?? {}).sort(([a], [b]) => a.localeCompare(b))
+    ]);
+    let pipeline = this.pipelines.get(key);
+    if (!pipeline) {
+      pipeline = this.device.createComputePipelineAsync(descriptor);
+      const pending = pipeline;
+      // A failed/in-flight request must not poison a later retry. The identity
+      // guard also avoids deleting a replacement after LRU eviction.
+      void pending.catch(() => {
+        if (this.pipelines.get(key) === pending) this.pipelines.delete(key);
+      });
+    }
+    return this.remember(this.pipelines, key, pipeline, 128);
+  }
+
+  createRenderPipeline(descriptor: GPURenderPipelineDescriptor) {
+    const { label: _label, vertex, fragment, ...options } = descriptor;
+    const key = JSON.stringify([options,
+      { ...vertex, module: this.id(vertex.module) },
+      fragment && { ...fragment, module: this.id(fragment.module) }]);
+    return this.remember(this.renderPipelines, key,
+      this.renderPipelines.get(key) ?? this.device.createRenderPipeline(descriptor), 128);
+  }
+
+  createComputePipeline(descriptor: GPUComputePipelineDescriptor) {
+    const { label: _label, compute, ...options } = descriptor;
+    const key = JSON.stringify([options, { ...compute, module: this.id(compute.module) }]);
+    return this.remember(this.computePipelines, key,
+      this.computePipelines.get(key) ?? this.device.createComputePipeline(descriptor), 128);
+  }
+
+  clear() {
+    this.modules.clear();
+    this.moduleIds.clear();
+    this.bindGroupLayouts.clear();
+    this.layouts.clear();
+    this.pipelines.clear();
+    this.renderPipelines.clear();
+    this.computePipelines.clear();
+  }
+}
+
+export {retainedShaderCapacity} from './shaderCapacity.js';
+
+/** Shared by target-local post-process passes; never contains GPU image resources. */
+const targetShaderCaches = new WeakMap<GPUDevice, WGPUShaderCache>();
+export function getTargetShaderCache(device: GPUDevice) {
+  let cache = targetShaderCaches.get(device);
+  if (!cache) targetShaderCaches.set(device, cache = new WGPUShaderCache(device));
+  return cache;
+}

@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "declaration": false,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@meimu/mutracer": ["src/main.ts"],
+      "@meimu/mutracer/oidn": ["src/oidn.ts"]
+    },
+    "types": ["@webgpu/types", "vite/client", "node"]
+  },
+  "include": ["src", "examples", "tests"]
+}
